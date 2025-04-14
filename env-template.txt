@@ -1,0 +1,39 @@
+# ===============================
+# IWB Digital Presence .env File
+# ===============================
+
+# Mode: 'email-only' or 'full'
+IWB_MODE=email-only
+
+# ======================
+# Domain Configuration
+# ======================
+MAIL_DOMAIN=yourdomain.tld          # Domain for accepting email i.e. email@yourdomain.tld
+MAIL_DOMAIN_SLUG=yourdomain-tld     # Used for naming Docker container (no dots)
+
+# =====================
+# Server Configuration
+# =====================
+PUBLIC_IP=192.0.2.123               # External Public IP to bind services
+
+# ====================
+# Mail Admin Account
+# ====================
+MAIL_USER=postmaster                # Default user account for mail
+MAIL_PASS=changeme123               # Make sure to use a strong password!
+
+# =========================
+# WordPress (Full Mode)
+# =========================
+MYSQL_ROOT_PASSWORD=
+MYSQL_DATABASE=
+MYSQL_USER=
+MYSQL_PASSWORD=
+
+# =============================
+# Offsite Object Storage (S3)
+# =============================
+STORJ_ENABLED=false
+STORJ_ACCESS_KEY=
+STORJ_SECRET_KEY=
+STORJ_BUCKET=
