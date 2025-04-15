@@ -22,6 +22,7 @@ services:
       - "${PUBLIC_IP}:587:587" # SMTP (submission)
       - "${PUBLIC_IP}:993:993" # IMAPS
       - "${PUBLIC_IP}:143:143" # IMAP (plain)
+      - "${PUBLIC_IP}:110:110" # POP3 (plain)
       - "${PUBLIC_IP}:4190:4190" # ManageSieve
 
     volumes:

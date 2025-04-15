@@ -1,0 +1,63 @@
+#!/bin/bash
+# includes/setup/scripts/start.sh
+
+set -e
+
+# Set some constants
+# Visual prefixes
+# Define colored IWB prefix
+# escape sequences using real escape characters
+RED=$(printf '\033[0;31m')
+GREEN=$(printf '\033[0;32m')
+BLUE=$(printf '\033[0;34m')
+RESET=$(printf '\033[0m')
+
+IWB_PREFIX="${GREEN}[${RED}I${GREEN}W${BLUE}B${GREEN}]${RESET}"
+ERR_PREFIX="${RED}ERROR${RESET}"
+
+SCRIPTSDIR="/var/setup/scripts"
+CONFIGDIR="/var/setup/configs"
+
+# === Required environment checks ===
+if [ -z "$MAIL_DOMAIN" ]; then
+  echo -e "$IWB_PREFIX $ERR_PREFIX: MAIL_DOMAIN environment variable not set. Aborting startup."
+  exit 1
+fi
+
+if [ -z "$MAIL_USER" ]; then
+  echo -e "$IWB_PREFIX $ERR_PREFIX: MAIL_USER environment variable not set. Aborting startup."
+  exit 1
+fi
+
+if [ -z "$MAIL_PASS" ]; then
+    echo -e "$IWB_PREFIX $ERR_PREFIX! MAIL_PASS not set. Aborting"
+    exit 1
+fi
+
+echo -e "$IWB_PREFIX Starting container services..."
+
+# Run email setup based on IWB_MODE
+if [[ "$IWB_MODE" == "bare-bones-email-only" ]]; then
+  echo -e "${IWB_PREFIX} Running bare-bones mail setup..."
+  source $SCRIPTSDIR/setup-mail-barebones.sh
+elif [[ "$IWB_MODE" == "full" ]]; then
+  echo -e "${IWB_PREFIX} Running full mail setup..."
+  source $SCRIPTSDIR/setup-mail-full.sh
+else
+  echo -e "${IWB_PREFIX} ${ERROR_PREFIX} Unknown IWB_MODE: $IWB_MODE"
+  exit 1
+fi
+
+# Setup Storj Access
+if [ "$STORJ_ENABLED" == "true" ]; then
+  echo -e "$IWB_PREFIX Initializing Storj backup system..."
+  mkdir -p ~/.local/share/storj/uplink
+  uplink setup --access "$STORJ_ACCESS_KEY"
+fi
+
+# Clean up stale supervisord socket if it exists
+[ -e /run/supervisord.sock ] && echo -e "$IWB_PREFIX Unlinking stale socket /run/supervisord.sock" && rm -f /run/supervisord.sock
+
+# Start supervisord in foreground
+echo -e "$IWB_PREFIX Launching supervisord..."
+exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf

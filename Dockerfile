@@ -8,19 +8,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required packages
 RUN apk update && apk add --no-cache \
-    bash \
-    rsyslog \
+    bash rsyslog curl nano coreutils iputils unzip wget \
     supervisor \
-    curl \
-    nano \
-    coreutils \
-    iputils \
-    postfix \
-    dovecot \
-    dovecot-lmtpd \
-    dovecot-pigeonhole-plugin \
+    postfix dovecot dovecot-lmtpd dovecot-pigeonhole-plugin dovecot-pop3d \
     mariadb mariadb-client \
-    ca-certificates
+    ca-certificates openssl \
+    nginx certbot certbot-nginx
+
+# Install Storj CLI (uplink)
+RUN wget -O /tmp/uplink.zip https://github.com/storj/storj/releases/latest/download/uplink_linux_amd64.zip && \
+    unzip /tmp/uplink.zip -d /tmp && \
+    mv /tmp/uplink /usr/local/bin/uplink && \
+    chmod +x /usr/local/bin/uplink && \
+    rm -rf /tmp/uplink.zip /tmp/uplink
 
 # Ensure correct vmail user and group
 RUN deluser vmail 2>/dev/null || true && \
@@ -33,29 +33,21 @@ RUN mkdir -p /var/mail/vmail && \
     chown -R vmail:vmail /var/mail/vmail && \
     chmod -R 770 /var/mail/vmail
 
-# Placeholder configs and script
-COPY docker/scripts/start.sh /usr/local/bin/start.sh
-COPY docker/configs/supervisord/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-COPY docker/configs/postfix/postfix-main.cf.template /var/mail/conf/postfix-main.cf.template
-COPY docker/configs/postfix/postfix-master.cf /var/mail/conf/postfix-master.cf
-
-COPY docker/configs/dovecot/dovecot-99-local.conf /var/mail/conf/dovecot-99-local.conf
-
-COPY docker/configs/rsyslogd/rsyslogd-10-postfix.conf /var/mail/conf/rsyslogd-10-postfix.conf
-COPY docker/configs/supervisord/supervisord.conf /var/mail/conf/supervisord.conf
-
-# Ensure script is executable
-RUN chmod +x /usr/local/bin/start.sh
-
-# Expose standard mail ports
-EXPOSE 25 587 993 143 4190
-
 # Set working directory
 WORKDIR /var
+
+# Placeholder configs and script
+ADD includes/includes.cache-buster /tmp/includes.cache-buster
+COPY includes/ .
+
+# Ensure scripts are executable
+RUN chmod +x /var/setup/scripts/* 
+
+# Expose standard mail ports
+EXPOSE 25 587 993 143 110 4190
 
 # Use bash shell
 SHELL ["/bin/bash", "-c"]
 
 # Start container
-ENTRYPOINT ["/usr/local/bin/start.sh"]
+ENTRYPOINT ["/var/setup/scripts/start.sh"]

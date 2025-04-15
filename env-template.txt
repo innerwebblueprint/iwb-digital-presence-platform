@@ -2,8 +2,8 @@
 # IWB Digital Presence .env File
 # ===============================
 
-# Mode: 'email-only' or 'full'
-IWB_MODE=email-only
+# Mode: 'bare-bones-email-only' or 'full'
+IWB_MODE=bare-bones-email-only
 
 # ======================
 # Domain Configuration

@@ -1,9 +1,4 @@
 .env
-docker/configs/dovecot/reference/
-docker/configs/dovecot/reference/
-docker/configs/dovecot/reference/
-docker/configs/postfix/reference/
-docker/configs/postfix/reference/
-docker/configs/supervisord/reference/
-docker/scripts/reference/
+reference/
 docker-compose.yml
+docker-command-reference.md
