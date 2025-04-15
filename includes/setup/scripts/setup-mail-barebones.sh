@@ -3,7 +3,7 @@
 
 # Replace placeholder with actual domain in postfix-main.cf
 echo -e "$IWB_PREFIX Substituting IWB_DOMAIN in postfix-main.cf"
-sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" $CONFIGDIR/mail/postfix/postfix-main.cf.template > $CONFIGDIR/mail/postfix/postfix-main.cf
+sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" $CONFIGDIR/mail/postfix/postfix-main-barebones.cf.template > $CONFIGDIR/mail/postfix/postfix-main-barebones.cf
 
 # Symlink configuration files
 echo -e "$IWB_PREFIX Linking config files"

@@ -14,6 +14,9 @@ fi
 echo -e "$IWB_PREFIX Creating nginx configs for $IWB_DOMAIN.conf"
 #sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" /var/mail/conf/nginx.conf.template > /etc/nginx/nginx.conf
 
+# Replace placeholder with actual domain in postfix-main.cf
+echo -e "$IWB_PREFIX Substituting IWB_DOMAIN in postfix-main.cf"
+sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" $CONFIGDIR/mail/postfix/postfix-main-full.cf.template > $CONFIGDIR/mail/postfix/postfix-main.cf
 
 # Symlink configuration files
 echo -e "$IWB_PREFIX Linking config files"
