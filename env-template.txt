@@ -8,8 +8,8 @@ IWB_MODE=bare-bones-email-only
 # ======================
 # Domain Configuration
 # ======================
-MAIL_DOMAIN=yourdomain.tld          # Domain for accepting email i.e. email@yourdomain.tld
-MAIL_DOMAIN_SLUG=yourdomain-tld     # Used for naming Docker container (no dots)
+IWB_DOMAIN=yourdomain.tld          # Domain for accepting email i.e. email@yourdomain.tld
+IWB_SLUG=yourdomain-tld     # Used for naming Docker container (no dots)
 
 # =====================
 # Server Configuration
@@ -33,7 +33,7 @@ MYSQL_PASSWORD=
 # =============================
 # Offsite Object Storage (S3)
 # =============================
-STORJ_ENABLED=false
-STORJ_ACCESS_KEY=
-STORJ_SECRET_KEY=
-STORJ_BUCKET=
+# Persistent File / Object Storage
+PERSISTENT_STORAGE=none # options: none, storj
+STORJ_GRANT=
+STORJ_WPOPS_BUCKET=

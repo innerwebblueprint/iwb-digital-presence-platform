@@ -3,8 +3,7 @@
 services:
   iwbdpp:
     # Replace with your preferred image tag (e.g., latest, dev-nightly, specific version)
-    image: iwbp/iwbdpp:dev-nightly
-    container_name: ${MAIL_DOMAIN_SLUG}
+    image: iwbp/iwbdpp:latest
 
     # Automatically restart unless manually stopped
     restart: unless-stopped
