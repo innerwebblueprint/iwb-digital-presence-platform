@@ -1,7 +1,7 @@
 # docker/configs/postfix/postfix-main.cf
 # Mail system identity
-myhostname = mail.{{MAIL_DOMAIN}}
-mydomain = {{MAIL_DOMAIN}}
+myhostname = mail.{{IWB_DOMAIN}}
+mydomain = {{IWB_DOMAIN}}
 myorigin = $mydomain
 
 # Accept mail only for this domain

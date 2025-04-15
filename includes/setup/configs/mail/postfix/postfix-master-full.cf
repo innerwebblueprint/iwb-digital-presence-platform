@@ -1,0 +1,21 @@
+# docker/configs/postfix/postfix-master.cf
+lmtp      unix  -       -       n       -       -       lmtp
+
+# SMTP listener
+smtp      inet  n       -       y       -       -       smtpd
+
+# Local mail submission (Sendmail compatibility)
+pickup    unix  n       -       n       60      1       pickup
+cleanup   unix  n       -       n       -       0       cleanup
+qmgr      unix  n       -       n       300     1       qmgr
+rewrite   unix  -       -       y       -       -       trivial-rewrite
+anvil     unix  -       -       y       -       1       anvil
+bounce    unix  -       -       y       -       0       bounce
+defer     unix  -       -       y       -       0       bounce
+trace     unix  -       -       y       -       0       bounce
+verify    unix  -       -       y       -       1       verify
+flush     unix  n       -       y       1000?   0       flush
+proxymap  unix  -       -       n       -       -       proxymap
+proxywrite unix -       -       n       -       1       proxymap
+scache    unix  -       -       y       -       1       scache
+showq     unix  n       -       n       -       -       showq

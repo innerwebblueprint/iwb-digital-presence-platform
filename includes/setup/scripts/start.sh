@@ -19,8 +19,8 @@ SCRIPTSDIR="/var/setup/scripts"
 CONFIGDIR="/var/setup/configs"
 
 # === Required environment checks ===
-if [ -z "$MAIL_DOMAIN" ]; then
-  echo -e "$IWB_PREFIX $ERR_PREFIX: MAIL_DOMAIN environment variable not set. Aborting startup."
+if [ -z "$IWB_DOMAIN" ]; then
+  echo -e "$IWB_PREFIX $ERR_PREFIX: IWB_DOMAIN environment variable not set. Aborting startup."
   exit 1
 fi
 
@@ -34,25 +34,18 @@ if [ -z "$MAIL_PASS" ]; then
     exit 1
 fi
 
-echo -e "$IWB_PREFIX Starting container services..."
+echo -e "$IWB_PREFIX Starting container services... in ${GREEN}$IWB_MODE${RESET} mode"
 
 # Run email setup based on IWB_MODE
 if [[ "$IWB_MODE" == "bare-bones-email-only" ]]; then
   echo -e "${IWB_PREFIX} Running bare-bones mail setup..."
   source $SCRIPTSDIR/setup-mail-barebones.sh
 elif [[ "$IWB_MODE" == "full" ]]; then
-  echo -e "${IWB_PREFIX} Running full mail setup..."
-  source $SCRIPTSDIR/setup-mail-full.sh
+  echo -e "${IWB_PREFIX} Running full setup..."
+  source $SCRIPTSDIR/setup-full.sh
 else
   echo -e "${IWB_PREFIX} ${ERROR_PREFIX} Unknown IWB_MODE: $IWB_MODE"
   exit 1
-fi
-
-# Setup Storj Access
-if [ "$STORJ_ENABLED" == "true" ]; then
-  echo -e "$IWB_PREFIX Initializing Storj backup system..."
-  mkdir -p ~/.local/share/storj/uplink
-  uplink setup --access "$STORJ_ACCESS_KEY"
 fi
 
 # Clean up stale supervisord socket if it exists

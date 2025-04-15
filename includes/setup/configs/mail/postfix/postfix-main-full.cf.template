@@ -1,0 +1,45 @@
+# docker/configs/postfix/postfix-main.cf
+# Mail system identity
+myhostname = mail.{{IWB_DOMAIN}}
+mydomain = {{IWB_DOMAIN}}
+myorigin = $mydomain
+
+# Accept mail only for this domain
+mydestination = localhost
+
+# Recipient restrictions (ensure valid delivery)
+smtpd_helo_required = yes
+smtpd_recipient_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination
+
+# Disable unused alias_maps to avoid LMDB warnings
+alias_maps =
+alias_database =
+
+# Mailbox setup
+virtual_mailbox_domains = $mydomain
+virtual_mailbox_base = /var/mail/vmail
+virtual_mailbox_maps = hash:/etc/postfix/virtual_mailbox
+virtual_alias_maps = regexp:/etc/postfix/virtual_alias
+virtual_uid_maps = static:10000
+virtual_gid_maps = static:10000
+
+# Transport to Dovecot
+#virtual_transport = dovecot
+virtual_transport = lmtp:unix:private/dovecot-lmtp
+
+# Listen on all interfaces
+inet_interfaces = all
+inet_protocols = ipv4
+
+# TLS disabled for now (set up later)
+smtpd_tls_security_level = none
+
+# Logging & limits         
+smtpd_banner = $myhostname ESMTP IWB Mail System
+biff = no
+append_dot_mydomain = no
+readme_directory = no
+virtual_alias_domains = 
