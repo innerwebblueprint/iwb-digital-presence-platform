@@ -46,3 +46,5 @@ if ! grep -q "^/.*/" "$ALIASMAP" 2>/dev/null; then
   chmod 644 "$ALIASMAP"
 fi
 
+# Safe exit/return mechanism
+(return 0 2>/dev/null) || exit 0

@@ -1,0 +1,21 @@
+# includes/setup/configs/http/nginx/sites-available/webmail.conf.template
+server {
+    listen 80;
+    server_name webmail.{{IWB_DOMAIN}};
+
+    root /var/www/webmail/public; # Placeholder
+    index index.php index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php-fpm.sock; # Adjust as needed
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+    access_log /var/log/nginx/webmail.{{IWB_DOMAIN}}_access.log;
+    error_log /var/log/nginx/webmail.{{IWB_DOMAIN}}_error.log;
+}

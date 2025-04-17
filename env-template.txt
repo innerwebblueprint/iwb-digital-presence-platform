@@ -2,14 +2,28 @@
 # IWB Digital Presence .env File
 # ===============================
 
-# Mode: 'bare-bones-email-only' or 'full'
-IWB_MODE=bare-bones-email-only
+# COMPOSE_PROJECT_NAME is mostly cosmentic - it just sets names of docker services
+# Set this to a 3 letter representation of your project 
+# For example, IWB (for InnerWebBlueprint.com)
+# Or SMA (for SharperMindAcademy.com)
+COMPOSE_PROJECT_NAME=
 
+# ======================
+# Some base Configuration
+# ======================
+# IWB_MODE, options: 'bare-bones-email-only' or 'full'
+# bare-bones-email-only mode sets up a bare bones email enviornmnet so you can receive an email 
+# at your domain.
+# full mode is a fully configured email enviornment and a fully configured wordpress website.
+IWB_MODE=bare-bones-email-only      
+
+
+                        
+                        
 # ======================
 # Domain Configuration
 # ======================
 IWB_DOMAIN=yourdomain.tld          # Domain for accepting email i.e. email@yourdomain.tld
-IWB_SLUG=yourdomain-tld     # Used for naming Docker container (no dots)
 
 # =====================
 # Server Configuration

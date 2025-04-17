@@ -36,7 +36,7 @@ fi
 
 echo -e "$IWB_PREFIX Starting container services... in ${GREEN}$IWB_MODE${RESET} mode"
 
-# Run email setup based on IWB_MODE
+# Run setup based on IWB_MODE
 if [[ "$IWB_MODE" == "bare-bones-email-only" ]]; then
   echo -e "${IWB_PREFIX} Running bare-bones mail setup..."
   source $SCRIPTSDIR/setup-mail-barebones.sh

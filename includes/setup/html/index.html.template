@@ -1,0 +1,40 @@
+<!-- includes/html/index.html.template -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Coming Soon | {{IWB_DOMAIN}}</title>
+  <style>
+    body {
+      background: #0f0f0f;
+      color: #eee;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+
+    img {
+      max-width: 300px;
+      margin: 2em 0;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      color: #00ff99;
+    }
+
+    p {
+      font-size: 1.2em;
+      color: #aaa;
+    }
+  </style>
+</head>
+
+<body>
+  <img src="https://iwbmedia.innerwebblueprint.com/2022/10/IWB-v2_5-triforce_IWB.png" alt="IWB Logo" />
+  <h1>This Inner Web Blueprint is Evolving...</h1>
+  <p>Something amazing is coming to <strong>{{IWB_DOMAIN}}</strong> — stay tuned!</p>
+</body>
+
+</html>
