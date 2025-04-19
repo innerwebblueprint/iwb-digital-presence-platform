@@ -1,0 +1,31 @@
+server {
+    listen 80;
+    server_name mail.{{IWB_DOMAIN}};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name mail.{{IWB_DOMAIN}};
+
+    root /var/www/html/postfixadmin/public;
+    index index.php index.html;
+
+    ssl_certificate /etc/letsencrypt/live/{{IWB_DOMAIN}}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{IWB_DOMAIN}}/privkey.pem;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+    access_log /var/log/nginx/mail_{{IWB_DOMAIN}}_ssl_access.log;
+    error_log /var/log/nginx/mail_{{IWB_DOMAIN}}_ssl_error.log;
+}

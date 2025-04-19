@@ -1,4 +1,4 @@
-# docker/configs/postfix/postfix-master.cf
+# includes/setup/configs/mail/postfix/postfix-master-full.cf
 lmtp      unix  -       -       n       -       -       lmtp
 
 # SMTP listener

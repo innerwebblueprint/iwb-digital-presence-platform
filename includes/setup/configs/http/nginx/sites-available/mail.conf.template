@@ -3,7 +3,7 @@ server {
     listen 80;
     server_name mail.{{IWB_DOMAIN}};
 
-    root /var/www/postfixadmin/public; # Placeholder
+    root /var/www/html/postfixadmin/public;
     index index.php index.html;
 
     location / {

@@ -3,7 +3,7 @@ server {
     listen 80;
     server_name webmail.{{IWB_DOMAIN}};
 
-    root /var/www/webmail/public; # Placeholder
+    root /var/www/html/webmail/public;
     index index.php index.html;
 
     location / {

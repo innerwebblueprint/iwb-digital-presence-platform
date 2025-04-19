@@ -3,7 +3,7 @@ server {
     listen 80;
     server_name {{IWB_DOMAIN}} www.{{IWB_DOMAIN}};
 
-    root /var/www/html;
+    root /var/www/html/wordpress;
     index index.html index.htm;
 
     location / {

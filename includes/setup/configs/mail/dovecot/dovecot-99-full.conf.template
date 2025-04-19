@@ -1,4 +1,4 @@
-# docker/configs/dovecot/dovecot-99-local.conf
+# includes/setup/configs/mail/dovecot/dovecot-99-full.conf.template
 auth_debug = yes
 auth_debug_passwords = yes
 auth_verbose = yes
@@ -86,13 +86,16 @@ service lmtp {
   }
 }
 
-
-
-ssl = no
-ssl_cert = </etc/ssl/dovecot/server.pem
-ssl_key = # hidden, use -P to show it
+ssl = required
+ssl_cert = </etc/letsencrypt/live/{{IWB_DOMAIN}}/fullchain.pem
+ssl_key = </etc/letsencrypt/live/{{IWB_DOMAIN}}/privkey.pem
+ssl_dh = </etc/ssl/dh.pem
+ssl_min_protocol = TLSv1.2
 ssl_prefer_server_ciphers = yes
+
+
 userdb {
   args = username_format=%u /etc/dovecot/users
   driver = passwd-file
 }
+ 

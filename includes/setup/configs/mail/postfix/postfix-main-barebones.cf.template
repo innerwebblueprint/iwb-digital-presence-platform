@@ -1,4 +1,4 @@
-# docker/configs/postfix/postfix-main.cf
+# includes/setup/configs/mail/postfix/postfix-main-barebones.cf.template
 # Mail system identity
 myhostname = mail.{{IWB_DOMAIN}}
 mydomain = {{IWB_DOMAIN}}
