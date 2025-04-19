@@ -7,16 +7,16 @@ set -e
 # Visual prefixes
 # Define colored IWB prefix
 # escape sequences using real escape characters
-RED=$(printf '\033[0;31m')
-GREEN=$(printf '\033[0;32m')
-BLUE=$(printf '\033[0;34m')
-RESET=$(printf '\033[0m')
+export IWB_RED=$(printf '\033[0;31m')
+export IWB_GREEN=$(printf '\033[0;32m')
+export IWB_BLUE=$(printf '\033[0;34m')
+export IWB_RESET=$(printf '\033[0m')
 
-IWB_PREFIX="${GREEN}[${RED}I${GREEN}W${BLUE}B${GREEN}]${RESET}"
-ERR_PREFIX="${RED}ERROR${RESET}"
+export IWB_PREFIX="${IWB_GREEN}[${IWB_RED}I${IWB_GREEN}W${IWB_BLUE}B${IWB_GREEN}]${IWB_RESET}"
+export ERR_PREFIX="${IWB_RED}ERROR${IWB_RESET}"
 
-SCRIPTSDIR="/var/setup/scripts"
-CONFIGDIR="/var/setup/configs"
+export SCRIPTSDIR="/var/setup/scripts"
+export CONFIGDIR="/var/setup/configs"
 
 # === Required environment checks ===
 if [ -z "$IWB_DOMAIN" ]; then
@@ -34,7 +34,7 @@ if [ -z "$MAIL_PASS" ]; then
     exit 1
 fi
 
-echo -e "$IWB_PREFIX Starting container services... in ${GREEN}$IWB_MODE${RESET} mode"
+echo -e "$IWB_PREFIX Starting container services... in ${IWB_GREEN}$IWB_MODE${IWB_RESET} mode"
 
 # Run setup based on IWB_MODE
 if [[ "$IWB_MODE" == "bare-bones-email-only" ]]; then

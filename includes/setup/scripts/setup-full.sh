@@ -1,8 +1,15 @@
 #!/bin/bash
-#includes/setup/scripts/setup-mail-full.sh
+# includes/setup/scripts/setup-full.sh
 
-# Setting up Web Servers
-echo -e "${IWB_PREFIX} Ensuring web root directories for nginx..."
+# Setup and verify storage provider Credentials
+echo -e "${IWB_PREFIX} Setup and verify storage provider Credentials..."
+if ! source /var/setup/scripts/storage-providers/storage-router.sh; then
+  echo -e "$IWB_PREFIX $ERR_PREFIX Storage Provider Setup failed... Aborting container startup."
+  exit 1
+fi
+
+# Setting up Web Server Enviornment
+echo -e "${IWB_PREFIX} Setting up web server enviornment..."
 
 IWB_WEB_WP=/var/www/html/wordpress
 IWB_WEB_POSTFIX=/var/www/html/postfixadmin/public
@@ -45,7 +52,6 @@ ln -sf /var/setup/configs/php/www.conf /etc/php81/php-fpm.d/www.conf
 
 # Handle SSL certificate setup via Let's Encrypt
 echo -e "${IWB_PREFIX} Preparing certificate setup for $IWB_DOMAIN..."
-
 if ! source /var/setup/scripts/cert-setup.sh; then
   echo -e "$IWB_PREFIX $ERR_PREFIX Certificate setup failed. Aborting container startup."
   exit 1

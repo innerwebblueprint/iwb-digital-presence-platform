@@ -8,16 +8,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required packages
 RUN apk update && apk add --no-cache \
-    bash rsyslog curl nano coreutils iputils unzip wget \
-    supervisor \
     postfix dovecot dovecot-lmtpd dovecot-pigeonhole-plugin dovecot-pop3d \
     mariadb mariadb-client \
     ca-certificates openssl \
     nginx certbot certbot-nginx \
     php81 php81-fpm php81-mysqli php81-mbstring php81-session \
     php81-json php81-openssl php81-curl php81-zlib php81-xml \
-    php81-dom php81-tokenizer php81-fileinfo
-
+    php81-dom php81-tokenizer php81-fileinfo \
+    bash rsyslog curl nano coreutils iputils unzip wget \
+    supervisor cronie
 
 # Install Storj CLI (uplink)
 RUN wget -O /tmp/uplink.zip https://github.com/storj/storj/releases/latest/download/uplink_linux_amd64.zip && \
