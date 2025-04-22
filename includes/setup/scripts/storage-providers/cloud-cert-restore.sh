@@ -1,7 +1,7 @@
 #!/bin/bash
 # includes/setup/scripts/storage-providers/cloud-restore.sh
 
-case "$PERSISTENT_STORAGE" in
+case "$IWB_PERSISTENT_STORAGE" in
   storj)
     ## Validate Storj setup is complete
     if [ "$IWB_STORJSETUP" == "false" ]; then
@@ -12,12 +12,12 @@ case "$PERSISTENT_STORAGE" in
     fi
     
     echo -e "$IWB_PREFIX Checking for existing certificate backup on Storj..."
-    CERTBACKUP="/tmp/cert-backups"
+    CERTBACKUP="$IWB_CERT_BACKUP_DIR"
     CERT_BACKUP_FILE="$CERTBACKUP/${IWB_DOMAIN}_certs.tar.gz"
     RESTORE_TMP="$CERTBACKUP/unpacked"
     mkdir -p "$CERTBACKUP" "$RESTORE_TMP"
     
-    if uplink cp "sj://${STORJ_WPOPS_BUCKET}/certs/${IWB_DOMAIN}_certs.tar.gz" "$CERT_BACKUP_FILE"; then
+    if uplink cp "$IWB_STORJ_CERT_BACKUP_KEY" "$CERT_BACKUP_FILE"; then
       echo -e "$IWB_PREFIX Found backup. Extracting..."
 
       if tar -xzf "$CERT_BACKUP_FILE" -C "$RESTORE_TMP"; then
@@ -61,9 +61,10 @@ case "$PERSISTENT_STORAGE" in
     ;;
 
   *)
-    echo -e "$IWB_PREFIX $ERR_PREFIX Unsupported persistent storage backend: '$PERSISTENT_STORAGE'"
+    echo -e "$IWB_PREFIX $ERR_PREFIX Unsupported persistent storage backend: '$IWB_PERSISTENT_STORAGE'"
     return 1
     ;;
 esac
 
+echo -e "$IWB_PREFIX All certs and dh.pem restored from cloud successfully."
 return 0

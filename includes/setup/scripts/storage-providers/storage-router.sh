@@ -2,7 +2,7 @@
 # includes/setup/scripts/storage-providers/storage-router.sh
 
 # Setup and verify storage provider Credentials
-case "$PERSISTENT_STORAGE" in
+case "$IWB_PERSISTENT_STORAGE" in
   storj)
     echo -e "${IWB_PREFIX} Storage provider: Storj"
     echo -e "${IWB_PREFIX} Setup and verify Storj Credentials..."
@@ -18,7 +18,7 @@ case "$PERSISTENT_STORAGE" in
     ;;
 
   *)
-    echo -e "$IWB_PREFIX $ERR_PREFIX Unsupported persistent storage backend: '$PERSISTENT_STORAGE'"
+    echo -e "$IWB_PREFIX $ERR_PREFIX Unsupported persistent storage backend: '$IWB_PERSISTENT_STORAGE'"
     return 1
     ;;
 esac

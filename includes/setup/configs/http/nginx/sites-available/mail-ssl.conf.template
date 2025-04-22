@@ -26,6 +26,10 @@ server {
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
 
+    location ~ /\.(?!well-known).* {
+    deny all;
+    }
+
     access_log /var/log/nginx/mail_{{IWB_DOMAIN}}_ssl_access.log;
     error_log /var/log/nginx/mail_{{IWB_DOMAIN}}_ssl_error.log;
 }

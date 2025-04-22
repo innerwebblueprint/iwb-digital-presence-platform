@@ -1,0 +1,8 @@
+# includes/setup/configs/mail/postfix/sql/mysql_virtual_mailbox_maps.template.cf
+# /etc/postfix/sql/
+
+user = {{IWB_POSTFIXADMIN_SQL_USER}}
+password = {{IWB_POSTFIXADMIN_SQL_PASSWORD}}
+hosts = 127.0.0.1
+dbname = postfixadmin
+query = SELECT maildir FROM mailbox WHERE username='%s' AND active = '1'

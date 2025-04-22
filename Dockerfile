@@ -8,15 +8,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required packages
 RUN apk update && apk add --no-cache \
-    postfix dovecot dovecot-lmtpd dovecot-pigeonhole-plugin dovecot-pop3d \
+    postfix postfix-mysql \
+    dovecot dovecot-lmtpd dovecot-pigeonhole-plugin dovecot-pop3d dovecot-mysql \
     mariadb mariadb-client \
     ca-certificates openssl \
     nginx certbot certbot-nginx \
-    php81 php81-fpm php81-mysqli php81-mbstring php81-session \
+    php81 php81-cli php81-fpm php81-mysqli php81-mbstring php81-session \
     php81-json php81-openssl php81-curl php81-zlib php81-xml \
     php81-dom php81-tokenizer php81-fileinfo \
+    php81-imap php81-gd php81-intl php81-pdo php81-pdo_mysql \
     bash rsyslog curl nano coreutils iputils unzip wget \
-    supervisor cronie
+    supervisor cronie dnsmasq
+
+RUN ln -sf /usr/bin/php81 /usr/bin/php
 
 # Install Storj CLI (uplink)
 RUN wget -O /tmp/uplink.zip https://github.com/storj/storj/releases/latest/download/uplink_linux_amd64.zip && \
@@ -35,6 +39,14 @@ RUN deluser vmail 2>/dev/null || true && \
 RUN mkdir -p /var/mail/vmail && \
     chown -R vmail:vmail /var/mail/vmail && \
     chmod -R 770 /var/mail/vmail
+
+# Install PostfixAdmin 
+WORKDIR /var/www/html/postfixadmin
+RUN wget https://github.com/postfixadmin/postfixadmin/archive/refs/tags/postfixadmin-3.3.13.tar.gz \
+    && tar -xzf postfixadmin-3.3.13.tar.gz --strip-components=1 \
+    && rm postfixadmin-3.3.13.tar.gz \
+    && chown -R nginx:nginx /var/www/html/postfixadmin/
+
 
 # Set working directory
 WORKDIR /var

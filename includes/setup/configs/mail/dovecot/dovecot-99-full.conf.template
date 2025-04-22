@@ -1,22 +1,28 @@
 # includes/setup/configs/mail/dovecot/dovecot-99-full.conf.template
+
 auth_debug = yes
 auth_debug_passwords = yes
 auth_verbose = yes
+
 debug_log_path = /var/log/dovecot-debug.log
 info_log_path = /var/log/dovecot-info.log
 log_path = /var/log/dovecot.log
 log_timestamp = "%Y-%m-%d %H:%M:%S "
-managesieve_notify_capability = mailto
-managesieve_sieve_capability = fileinto reject envelope encoded-character vacation subaddress comparator-i;ascii-numeric relational regex imap4flags copy include variables body enotify environment mailbox date index ihave duplicate mime foreverypart extracttext
-mbox_write_locks = fcntl
 
 disable_plaintext_auth = no
 auth_mechanisms = plain login
 
+managesieve_notify_capability = mailto
+managesieve_sieve_capability = fileinto reject envelope encoded-character vacation subaddress comparator-i;ascii-numeric relational regex imap4flags copy include variables body enotify environment mailbox date index ihave duplicate mime foreverypart extracttext
+
+mbox_write_locks = fcntl
+
+protocols = imap pop3 lmtp
 
 namespace inbox {
   inbox = yes
   location = 
+  prefix = 
   mailbox Drafts {
     special_use = \Drafts
   }
@@ -32,28 +38,53 @@ namespace inbox {
   mailbox Trash {
     special_use = \Trash
   }
-  prefix = 
 }
+
+# === SQL Authentication Backend (Inline Configuration) ===
 passdb {
-  args = scheme=CRYPT username_format=%u /etc/dovecot/users
-  driver = passwd-file
+  driver = sql
+  args = /etc/dovecot/dovecot-sql.conf.ext
 }
+
+userdb {
+  driver = sql
+  args = /etc/dovecot/dovecot-sql.conf.ext
+}
+
 plugin {
   sieve = file:~/sieve;active=~/.dovecot.sieve
 }
-
-protocols = imap pop3 lmtp
 
 service pop3-login {
   inet_listener pop3 {
     port = 110
   }
-  # pop3s on port 995 will be added when TLS is enabled
+}
+
+service imap-login {
+  inet_listener imap {
+    port = 143
+  }
+  inet_listener imaps {
+    port = 993
+    ssl = yes
+  }
+}
+
+service lmtp {
+  executable = /usr/libexec/dovecot/lmtp
+  process_limit = 10
+  unix_listener /var/spool/postfix/private/dovecot-lmtp {
+    group = postfix
+    mode = 0600
+    user = postfix
+  }
 }
 
 service auth-worker {
   user = vmail
 }
+
 service auth {
   unix_listener /var/spool/postfix/private/auth {
     group = postfix
@@ -67,24 +98,6 @@ service auth {
   }
   user = dovecot
 }
-service imap-login {
-  inet_listener imap {
-    port = 143
-  }
-  inet_listener imaps {
-    port = 993
-    ssl = yes
-  }
-}
-service lmtp {
-  executable = /usr/libexec/dovecot/lmtp
-  process_limit = 10
-  unix_listener /var/spool/postfix/private/dovecot-lmtp {
-    group = postfix
-    mode = 0600
-    user = postfix
-  }
-}
 
 ssl = required
 ssl_cert = </etc/letsencrypt/live/{{IWB_DOMAIN}}/fullchain.pem
@@ -92,10 +105,3 @@ ssl_key = </etc/letsencrypt/live/{{IWB_DOMAIN}}/privkey.pem
 ssl_dh = </etc/ssl/dh.pem
 ssl_min_protocol = TLSv1.2
 ssl_prefer_server_ciphers = yes
-
-
-userdb {
-  args = username_format=%u /etc/dovecot/users
-  driver = passwd-file
-}
- 

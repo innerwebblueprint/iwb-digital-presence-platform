@@ -8,47 +8,24 @@ if ! source /var/setup/scripts/storage-providers/storage-router.sh; then
   exit 1
 fi
 
-# Setting up Web Server Enviornment
-echo -e "${IWB_PREFIX} Setting up web server enviornment..."
-
-IWB_WEB_WP=/var/www/html/wordpress
-IWB_WEB_POSTFIX=/var/www/html/postfixadmin/public
-IWB_WEB_WEBMAIL=/var/www/html/webmail/public
-mkdir -p $IWB_WEB_WP
-mkdir -p $IWB_WEB_POSTFIX
-mkdir -p $IWB_WEB_WEBMAIL
-
-# Process comming soon template {{IWB_DOMAIN}}
-COMING_SOON_TEMPLATE="/var/setup/html/index.html.template"
-COMING_SOON_OUTPUT="/var/setup/html/index.html"
-
-if [ ! -f "$COMING_SOON_TEMPLATE" ]; then
-  echo -e "$IWB_PREFIX $ERR_PREFIX Missing coming soon template: $COMING_SOON_TEMPLATE"
-  exit 1
+# Setup Database Enviornment
+echo -e "${IWB_PREFIX} Setup and verify Database Enviornment"
+if ! source /var/setup/scripts/db-setup.sh; then
+  echo -e "$IWB_PREFIX $ERR_PREFIX Databse Enviornment Setup failed... Aborting container startup."
+  return 1
 fi
 
-if ! sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" "$COMING_SOON_TEMPLATE" > "$COMING_SOON_OUTPUT"; then
-  echo -e "$IWB_PREFIX $ERR_PREFIX Failed to render coming soon page from template."
-  exit 1
-else
-  echo -e "$IWB_PREFIX Coming soon page rendered for $IWB_DOMAIN"
+# Setup PostfixAdmin (restore, config, schema, backup)
+if ! source /var/setup/scripts/postfixadmin-setup.sh; then
+  echo -e "$IWB_PREFIX $ERR_PREFIX PostfixAdmin setup failed. Aborting."
+  return 1
 fi
 
-echo -e "${IWB_PREFIX} Linked coming soon page for $IWB_WEB_WP"
-ln -sf $COMING_SOON_OUTPUT $IWB_WEB_WP/index.html
-
-echo -e "${IWB_PREFIX} Linked coming soon page for $IWB_WEB_POSTFIX root"
-ln -sf $COMING_SOON_OUTPUT $IWB_WEB_POSTFIX/index.html
-
-echo -e "${IWB_PREFIX} Linked coming soon page for $IWB_WEB_WEBMAIL root"
-ln -sf $COMING_SOON_OUTPUT $IWB_WEB_WEBMAIL/index.html
-
-echo -e "$IWB_PREFIX Linking PHP-FPM configuration..."
-
-mkdir -p /etc/php81/php-fpm.d
-
-ln -sf /var/setup/configs/php/php-fpm.conf /etc/php81/php-fpm.conf
-ln -sf /var/setup/configs/php/www.conf /etc/php81/php-fpm.d/www.conf
+# Setup Pre Web Server Enviornment for getting certs
+if ! source /var/setup/scripts/setup-pre-webserver.sh; then
+  echo -e "$IWB_PREFIX $ERR_PREFIX Seting Web Server Enviorment failed. Aborting."
+  return 1
+fi
 
 # Handle SSL certificate setup via Let's Encrypt
 echo -e "${IWB_PREFIX} Preparing certificate setup for $IWB_DOMAIN..."
@@ -60,7 +37,7 @@ fi
 # Setup Nginx virtual host templates for SSL (we exit if we fail to get certs so this is safe)
 echo -e "$IWB_PREFIX Processing and linking SSL-enabled Nginx configs..."
 
-SSL_TEMPLATE_DIR="$CONFIGDIR/http/nginx/sites-available"
+SSL_TEMPLATE_DIR="$IWB_CONFIGDIR/http/nginx/sites-available"
 NGINX_CONF_DIR="/etc/nginx/http.d"
 
 # Let's empty that directory to make sure nothing is in there from before
@@ -86,21 +63,86 @@ done
 echo -e "$IWB_PREFIX Setting up eMail"
 
 echo -e "$IWB_PREFIX Creating Postfix configs"
-sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" $CONFIGDIR/mail/postfix/postfix-main-full.cf.template > $CONFIGDIR/mail/postfix/postfix-main-full.cf
+sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" $IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf.template > $IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf
 
-echo -e "$IWB_PREFIX Creating Dovecot configs"
-sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" "$CONFIGDIR/mail/dovecot/dovecot-99-full.conf.template" > "$CONFIGDIR/mail/dovecot/dovecot-99-full.conf"
+sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+    "$IWB_CONFIGDIR/mail/dovecot/dovecot-99-full.conf.template" > "$IWB_CONFIGDIR/mail/dovecot/dovecot-99-full.conf"
+
+
+# Render Postfix SQL maps
+echo -e "$IWB_PREFIX Rendering Postfix SQL config maps..."
+
+mkdir -p /etc/postfix/sql
+rm -f /etc/dovecot/conf.d/10-auth.conf
+
+
+# Alias map
+sed -e "s|{{IWB_POSTFIXADMIN_SQL_USER}}|$IWB_POSTFIXADMIN_SQL_USER|g" \
+    -e "s|{{IWB_POSTFIXADMIN_SQL_PASSWORD}}|$IWB_POSTFIXADMIN_SQL_PASSWORD|g" \
+    -e "s|{{IWB_POSTFIXADMIN_SQL_DBNAME}}|$IWB_POSTFIXADMIN_SQL_DBNAME|g" \
+    "$IWB_CONFIGDIR/mail/postfix/sql/mysql_virtual_alias_maps.template.cf" \
+    > "$IWB_CONFIGDIR/mail/postfix/sql/mysql_virtual_alias_maps.cf"
+ln -sf "$IWB_CONFIGDIR/mail/postfix/sql/mysql_virtual_alias_maps.cf" /etc/postfix/sql/mysql_virtual_alias_maps.cf
+
+# Mailbox map
+sed -e "s|{{IWB_POSTFIXADMIN_SQL_USER}}|$IWB_POSTFIXADMIN_SQL_USER|g" \
+    -e "s|{{IWB_POSTFIXADMIN_SQL_PASSWORD}}|$IWB_POSTFIXADMIN_SQL_PASSWORD|g" \
+    -e "s|{{IWB_POSTFIXADMIN_SQL_DBNAME}}|$IWB_POSTFIXADMIN_SQL_DBNAME|g" \
+    "$IWB_CONFIGDIR/mail/postfix/sql/mysql_virtual_mailbox_maps.template.cf" \
+    > "$IWB_CONFIGDIR/mail/postfix/sql/mysql_virtual_mailbox_maps.cf"
+ln -sf "$IWB_CONFIGDIR/mail/postfix/sql/mysql_virtual_mailbox_maps.cf" /etc/postfix/sql/mysql_virtual_mailbox_maps.cf
+
+# Domain map
+sed -e "s|{{IWB_POSTFIXADMIN_SQL_USER}}|$IWB_POSTFIXADMIN_SQL_USER|g" \
+    -e "s|{{IWB_POSTFIXADMIN_SQL_PASSWORD}}|$IWB_POSTFIXADMIN_SQL_PASSWORD|g" \
+    -e "s|{{IWB_POSTFIXADMIN_SQL_DBNAME}}|$IWB_POSTFIXADMIN_SQL_DBNAME|g" \
+    "$IWB_CONFIGDIR/mail/postfix/sql/mysql_virtual_domains_maps.template.cf" \
+    > "$IWB_CONFIGDIR/mail/postfix/sql/mysql_virtual_domains_maps.cf"
+ln -sf "$IWB_CONFIGDIR/mail/postfix/sql/mysql_virtual_domains_maps.cf" /etc/postfix/sql/mysql_virtual_domains_maps.cf
+
+
+echo -e "$IWB_PREFIX Rendering Dovecot SQL config"
+sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+    -e "s|{{IWB_POSTFIXADMIN_SQL_USER}}|$IWB_POSTFIXADMIN_SQL_USER|g" \
+    -e "s|{{IWB_POSTFIXADMIN_SQL_PASSWORD}}|$IWB_POSTFIXADMIN_SQL_PASSWORD|g" \
+    -e "s|{{IWB_POSTFIXADMIN_SQL_DBNAME}}|$IWB_POSTFIXADMIN_SQL_DBNAME|g" \
+    "$IWB_CONFIGDIR/mail/dovecot/dovecot-sql.conf.template" > /etc/dovecot/dovecot-sql.conf.ext
 
 
 # Symlink configuration files
 echo -e "$IWB_PREFIX Linking config files"
 mkdir -p /etc/rsyslog.d
 mkdir -p /etc/supervisor/conf.d
-ln -sf $CONFIGDIR/mail/postfix/postfix-main-full.cf /etc/postfix/main.cf
-ln -sf $CONFIGDIR/mail/postfix/postfix-master-full.cf /etc/postfix/master.cf
-ln -sf $CONFIGDIR/mail/dovecot/dovecot-99-full.conf /etc/dovecot/conf.d/99-local.conf
-ln -sf $CONFIGDIR/system/rsyslogd/rsyslogd-10-postfix.conf /etc/rsyslog.d/10-postfix.conf
-ln -sf $CONFIGDIR/system/supervisord/supervisord-full.conf /etc/supervisor/conf.d/supervisord.conf
+ln -sf $IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf /etc/postfix/main.cf
+ln -sf $IWB_CONFIGDIR/mail/postfix/postfix-master-full.cf /etc/postfix/master.cf
+ln -sf $IWB_CONFIGDIR/mail/dovecot/dovecot-99-full.conf /etc/dovecot/conf.d/99-local.conf
+ln -sf $IWB_CONFIGDIR/system/rsyslogd/rsyslogd-10-postfix.conf /etc/rsyslog.d/10-postfix.conf
+ln -sf $IWB_CONFIGDIR/system/supervisord/supervisord-full.conf /etc/supervisor/conf.d/supervisord.conf
+
+
+# === Stop manually started MariaDB if needed ===
+if [ -f "$IWB_MARIADB_PID_FILE" ]; then
+  PID=$(cat "$IWB_MARIADB_PID_FILE")
+  echo "$IWB_PREFIX Shutting down temporary MariaDB (PID $PID)..."
+  
+  kill "$PID"
+  
+  for i in {1..10}; do
+    if ! kill -0 "$PID" 2>/dev/null; then
+      echo "$IWB_PREFIX MariaDB has shut down cleanly."
+      break
+    fi
+    sleep 1
+    if [ "$i" -eq 10 ]; then
+      echo "$IWB_PREFIX $ERR_PREFIX MariaDB did not shut down in time — force killing."
+      kill -9 "$PID"
+    fi
+  done
+
+  rm -f "$IWB_MARIADB_PID_FILE"
+fi
+
+
 
 
 # Safe exit/return mechanism
