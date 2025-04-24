@@ -37,6 +37,7 @@ export IWB_MAIL_BACKUP_PATH="${IWB_BACKUP_DIR}/maildir.tar.gz"
 export IWB_STORJ_PA_DB_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/mail/db/postfixadmin_${IWB_DOMAIN}.sql"
 export IWB_STORJ_MAIL_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/mail/email/${IWB_DOMAIN}_maildir.tar.gz"
 export IWB_STORJ_CERT_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/certs/${IWB_DOMAIN}_certs.tar.gz"
+export IWB_DKIM_CERT_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/certs/${IWB_DOMAIN}_dkim_certs.tar.gz"
 
 # === Database Admin ===
 # Generate password if not already set
@@ -58,6 +59,13 @@ if [ -z "${IWB_POSTFIXADMIN_SQL_PASSWORD}" ]; then
   export IWB_POSTFIXADMIN_SQL_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
   echo "$IWB_PREFIX No DB password provided for PostfixAdmin — generated one automatically."
 fi
+
+# === RSPAMD Config === #
+# These are configured in your .env as you may want to use them to access the
+# web administration interface
+#IWB_RSPAMD_CONTROLLER_PASSWORD="your_pass"
+#IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD="your_enable_pass"
+
 
 # === Webroot Directories ===
 export IWB_WEB_WP="/var/www/html/wordpress"

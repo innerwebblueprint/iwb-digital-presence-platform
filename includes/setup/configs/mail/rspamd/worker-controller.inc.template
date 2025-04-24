@@ -1,0 +1,10 @@
+# includes/setup/configs/mail/rspamd/worker-controller.inc.template
+
+# This is a rendered file for domain {{IWB_DOMAIN}}
+# Please do not edit here, this template is built into the docker container
+
+# Controller worker (required for DKIM, training, web interface)
+
+password = "{{IWB_RSPAMD_CONTROLLER_PASSWORD}}";
+enable_password = "{{IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD}}";
+

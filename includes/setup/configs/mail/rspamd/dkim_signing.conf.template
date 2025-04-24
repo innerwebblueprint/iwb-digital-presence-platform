@@ -1,0 +1,13 @@
+# includes/setup/configs/mail/rspamd/dkim_signing.conf.template
+
+# This is a rendered file for domain {{IWB_DOMAIN}}
+# Please do not edit here, this template is built into the docker container
+
+selector = "dkim";
+path = "/var/lib/rspamd/dkim/$domain.$selector.key";
+domain = "{{IWB_DOMAIN}}";
+allow_hdrfrom_mismatch = true;
+allow_username_mismatch = true;
+use_domain = "header";
+sign_authenticated = true;
+sign_local = true;

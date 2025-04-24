@@ -1,0 +1,8 @@
+# includes/setup/configs/mail/rspamd/logging.inc.template
+
+# This is a rendered file for domain {{IWB_DOMAIN}}
+# Please do not edit here, this template is built into the docker container
+
+type = "file";
+filename = "/var/log/rspamd/rspamd.log";
+level = "info";

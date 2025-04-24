@@ -119,6 +119,14 @@ ln -sf $IWB_CONFIGDIR/mail/dovecot/dovecot-99-full.conf /etc/dovecot/conf.d/99-l
 ln -sf $IWB_CONFIGDIR/system/rsyslogd/rsyslogd-10-postfix.conf /etc/rsyslog.d/10-postfix.conf
 ln -sf $IWB_CONFIGDIR/system/supervisord/supervisord-full.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Setup RSPAMD
+echo -e "${IWB_PREFIX} Preparing rspamd setup for $IWB_DOMAIN..."
+if ! source /var/setup/scripts/setup-rspamd.sh; then
+  echo -e "$IWB_PREFIX $ERR_PREFIX Rspamd setup failed. Aborting container startup."
+  exit 1
+fi
+
+
 
 # === Stop manually started MariaDB if needed ===
 if [ -f "$IWB_MARIADB_PID_FILE" ]; then

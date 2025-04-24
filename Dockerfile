@@ -8,17 +8,17 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required packages
 RUN apk update && apk add --no-cache \
-    postfix postfix-mysql \
-    dovecot dovecot-lmtpd dovecot-pigeonhole-plugin dovecot-pop3d dovecot-mysql \
+    # Postfix + Dovecot + Rspamd
+    postfix postfix-mysql dovecot dovecot-lmtpd dovecot-pigeonhole-plugin dovecot-pop3d dovecot-mysql rspamd redis mailx \
+    # MariaDB
     mariadb mariadb-client \
-    ca-certificates openssl \
+    # Certbot + Nginx
     nginx certbot certbot-nginx \
-    php81 php81-cli php81-fpm php81-mysqli php81-mbstring php81-session \
-    php81-json php81-openssl php81-curl php81-zlib php81-xml \
-    php81-dom php81-tokenizer php81-fileinfo \
-    php81-imap php81-gd php81-intl php81-pdo php81-pdo_mysql \
-    bash rsyslog curl nano coreutils iputils unzip wget \
-    supervisor cronie dnsmasq
+    # PHP
+    php81 php81-cli php81-fpm php81-mysqli php81-mbstring php81-session php81-json php81-openssl php81-curl \
+    php81-zlib php81-xml php81-dom php81-tokenizer php81-fileinfo php81-imap php81-gd php81-intl php81-pdo php81-pdo_mysql \
+    # System Utilities
+    bash rsyslog curl nano coreutils iputils unzip wget supervisor cronie dnsmasq
 
 RUN ln -sf /usr/bin/php81 /usr/bin/php
 

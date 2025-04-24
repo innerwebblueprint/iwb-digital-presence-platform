@@ -41,6 +41,10 @@ echo "nameserver 127.0.0.1" > /etc/resolv.conf
 # Clean up stale supervisord socket if it exists
 [ -e /run/supervisord.sock ] && echo -e "$IWB_PREFIX Unlinking stale socket /run/supervisord.sock" && rm -f /run/supervisord.sock
 
+# Launch DKIM setup in background
+/var/setup/scripts/setup-dkim.sh &
+sleep 3
+
 # Start supervisord in foreground
 echo -e "$IWB_PREFIX Launching supervisord..."
 exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf

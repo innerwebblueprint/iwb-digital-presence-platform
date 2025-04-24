@@ -1,0 +1,12 @@
+# includes/setup/configs/mail/rspamd/worker-proxy.inc.template
+
+# This is a rendered file for domain {{IWB_DOMAIN}}
+# Please do not edit here, this template is built into the docker container
+
+milter = yes;
+timeout = 120s;
+upstream "local" {
+    default = yes;
+    self_scan = yes;
+}
+
