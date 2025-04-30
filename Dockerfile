@@ -56,7 +56,7 @@ ADD includes/includes.cache-buster /tmp/includes.cache-buster
 COPY includes/ .
 
 # Ensure scripts are executable
-RUN chmod +x /var/setup/scripts/* 
+RUN chmod -R +x /var/setup/scripts/* 
 
 # Expose standard mail ports
 EXPOSE 25 587 993 143 110 4190

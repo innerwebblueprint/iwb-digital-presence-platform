@@ -1,41 +1,43 @@
 #!/bin/bash
 # includes/setup/scripts/setup-full.sh
 
+MODULE="FULL"
+
 # Setup and verify storage provider Credentials
-echo -e "${IWB_PREFIX} Setup and verify storage provider Credentials..."
+log "Setup and verify storage provider Credentials..."
 if ! source /var/setup/scripts/storage-providers/storage-router.sh; then
-  echo -e "$IWB_PREFIX $ERR_PREFIX Storage Provider Setup failed... Aborting container startup."
+  log "$ERR_PREFIX Storage Provider Setup failed... Aborting container startup."
   exit 1
 fi
 
 # Setup Database Enviornment
-echo -e "${IWB_PREFIX} Setup and verify Database Enviornment"
+log "Setup and verify Database Enviornment"
 if ! source /var/setup/scripts/db-setup.sh; then
-  echo -e "$IWB_PREFIX $ERR_PREFIX Databse Enviornment Setup failed... Aborting container startup."
+  log "$ERR_PREFIX Databse Enviornment Setup failed... Aborting container startup."
   return 1
 fi
 
 # Setup PostfixAdmin (restore, config, schema, backup)
 if ! source /var/setup/scripts/postfixadmin-setup.sh; then
-  echo -e "$IWB_PREFIX $ERR_PREFIX PostfixAdmin setup failed. Aborting."
+  log "$ERR_PREFIX PostfixAdmin setup failed. Aborting."
   return 1
 fi
 
 # Setup Pre Web Server Enviornment for getting certs
 if ! source /var/setup/scripts/setup-pre-webserver.sh; then
-  echo -e "$IWB_PREFIX $ERR_PREFIX Seting Web Server Enviorment failed. Aborting."
+  log "$ERR_PREFIX Seting up Web Server Enviorment failed. Aborting."
   return 1
 fi
 
 # Handle SSL certificate setup via Let's Encrypt
-echo -e "${IWB_PREFIX} Preparing certificate setup for $IWB_DOMAIN..."
+log "Preparing certificate setup for $IWB_DOMAIN..."
 if ! source /var/setup/scripts/cert-setup.sh; then
-  echo -e "$IWB_PREFIX $ERR_PREFIX Certificate setup failed. Aborting container startup."
+  log $MODULE "$ERR_PREFIX Certificate setup failed. Aborting container startup."
   exit 1
 fi
 
 # Setup Nginx virtual host templates for SSL (we exit if we fail to get certs so this is safe)
-echo -e "$IWB_PREFIX Processing and linking SSL-enabled Nginx configs..."
+log "Processing and linking SSL-enabled Nginx configs..."
 
 SSL_TEMPLATE_DIR="$IWB_CONFIGDIR/http/nginx/sites-available"
 NGINX_CONF_DIR="/etc/nginx/http.d"
@@ -53,16 +55,16 @@ for TEMPLATE in "$SSL_TEMPLATE_DIR"/*ssl*.conf.template; do
     sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" "$TEMPLATE" > "$OUTPUT"
     ln -sf "$OUTPUT" "$LINK_TARGET"
 
-    echo -e "$IWB_PREFIX Linked SSL config: $BASENAME"
+    log "Linked SSL config: $BASENAME"
   else
-    echo -e "$IWB_PREFIX $ERR_PREFIX No matching SSL templates found in $SSL_TEMPLATE_DIR"
+    log "$ERR_PREFIX No matching SSL templates found in $SSL_TEMPLATE_DIR"
   fi
 done
 
 # Setting up eMail
-echo -e "$IWB_PREFIX Setting up eMail"
+log "Setting up eMail"
 
-echo -e "$IWB_PREFIX Creating Postfix configs"
+log "Creating Postfix configs"
 sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" $IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf.template > $IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf
 
 sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
@@ -70,7 +72,7 @@ sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
 
 
 # Render Postfix SQL maps
-echo -e "$IWB_PREFIX Rendering Postfix SQL config maps..."
+log "Rendering Postfix SQL config maps..."
 
 mkdir -p /etc/postfix/sql
 rm -f /etc/dovecot/conf.d/10-auth.conf
@@ -101,7 +103,7 @@ sed -e "s|{{IWB_POSTFIXADMIN_SQL_USER}}|$IWB_POSTFIXADMIN_SQL_USER|g" \
 ln -sf "$IWB_CONFIGDIR/mail/postfix/sql/mysql_virtual_domains_maps.cf" /etc/postfix/sql/mysql_virtual_domains_maps.cf
 
 
-echo -e "$IWB_PREFIX Rendering Dovecot SQL config"
+log "Rendering Dovecot SQL config"
 sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
     -e "s|{{IWB_POSTFIXADMIN_SQL_USER}}|$IWB_POSTFIXADMIN_SQL_USER|g" \
     -e "s|{{IWB_POSTFIXADMIN_SQL_PASSWORD}}|$IWB_POSTFIXADMIN_SQL_PASSWORD|g" \
@@ -110,7 +112,7 @@ sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
 
 
 # Symlink configuration files
-echo -e "$IWB_PREFIX Linking config files"
+log "Linking config files"
 mkdir -p /etc/rsyslog.d
 mkdir -p /etc/supervisor/conf.d
 ln -sf $IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf /etc/postfix/main.cf
@@ -119,10 +121,16 @@ ln -sf $IWB_CONFIGDIR/mail/dovecot/dovecot-99-full.conf /etc/dovecot/conf.d/99-l
 ln -sf $IWB_CONFIGDIR/system/rsyslogd/rsyslogd-10-postfix.conf /etc/rsyslog.d/10-postfix.conf
 ln -sf $IWB_CONFIGDIR/system/supervisord/supervisord-full.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Restore Usser Mail if Archived
+log "Attempting to restore user mailboxes for $IWB_DOMAIN..."
+if ! iwb-restore.sh mail latest; then
+  log "$ERR_PREFIX No user mailboxes found... this is normal on a first run"
+fi
+
 # Setup RSPAMD
-echo -e "${IWB_PREFIX} Preparing rspamd setup for $IWB_DOMAIN..."
+log "Preparing rspamd setup for $IWB_DOMAIN..."
 if ! source /var/setup/scripts/setup-rspamd.sh; then
-  echo -e "$IWB_PREFIX $ERR_PREFIX Rspamd setup failed. Aborting container startup."
+  log "$ERR_PREFIX Rspamd setup failed. Aborting container startup."
   exit 1
 fi
 

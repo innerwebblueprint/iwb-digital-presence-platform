@@ -4,14 +4,14 @@
 
 set -e
 
+MODULE="DKIM"
+
 LOG_FILE="/var/log/setup-dkim.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-log() {
-  echo -e "$IWB_PREFIX $IWB_BLUE DKIM $IWB_RESET $1"
-}
-
 log "Starting DKIM setup in the background for $IWB_DOMAIN..."
+
+sleep 10
 
 DKIM_DIR="/var/lib/rspamd/dkim"
 DOMAIN="${IWB_DOMAIN}"
@@ -20,49 +20,75 @@ DKIM_KEY="${DKIM_DIR}/${DOMAIN}.${SELECTOR}.key"
 BACKUP_KEY="${IWB_DKIM_CERT_BACKUP_KEY}"
 TMP_BACKUP="/tmp/${DOMAIN}_dkim_certs.tar.gz"
 
-# Create DKIM directory if not exists
+# === Create DKIM directory if it doesn't exist ===
 mkdir -p "$DKIM_DIR"
 
-log "[DKIM] Attempting to restore DKIM keys from Storj..."
-sleep 4
-if uplink cp "$BACKUP_KEY" "$TMP_BACKUP"; then
-  log "Restored archive found. Extracting..."
-  tar -xzvf "$TMP_BACKUP" -C "$DKIM_DIR"
+log "Attempting to restore DKIM keys from Storj..."
+
+# === Try restoring existing DKIM key ===
+if iwb-restore.sh dkim latest; then
+  log "Existing DKIM keys restored successfully."
 else
-  log "Waiting for rspamd and postfix to be available..."
-
-  # Wait for rspamd (check socket or port)
-  while ! nc -z 127.0.0.1 11334; do
-    log "Waiting for rspamd (port 11334)..."
-    sleep 4
-  done
-
-  # Wait for postfix (check port 25 open locally)
+  log "No existing DKIM keys found, generating a new one."
+  # === Wait for postfix to become ready ===
   while ! nc -z 127.0.0.1 25; do
     log "Waiting for postfix (port 25)..."
     sleep 4
   done
-
-  log "Services ready. Starting DKIM setup..."
-
-  echo -e "$IWB_PREFIX [DKIM] No backup found. Generating new DKIM key..."
+  # === Wait for rspamd to become ready ===
+  while ! nc -z 127.0.0.1 11334; do
+    log "Waiting for rspamd (port 11334)..."
+    sleep 4
+  done
+  # === Generate DKIM key ===
+  log "Services ready. Generating DKIM keys..."
   rspamadm dkim_keygen -d "$DOMAIN" -s "$SELECTOR" -k "$DKIM_KEY" -b 2048
-  echo -e "$IWB_PREFIX [DKIM] Archiving and uploading DKIM key to Storj..."
-  tar -czvf "$TMP_BACKUP" -C "$DKIM_DIR" .
-  uplink cp "$TMP_BACKUP" "$BACKUP_KEY"
+  log "DKIM keys generated..."
+
+  # === Backup newly generated DKIM key ===
+  log "Backing up newly generated DKIM keys..."
+  iwb-backup.sh dkim snapshot
 fi
 
 chown rspamd:rspamd $DKIM_KEY
 chmod 600 $DKIM_KEY
 
+log "DKIM KEY: $DKIM_KEY"
+# cat $DKIM_KEY
+
+log "Sending DKIM setup email to $IWB_MAIL_USER@$DOMAIN"
 
 # Determine expected public key file location
 DKIM_KEY_DIR="/var/lib/rspamd/dkim"
 DKIM_PRIVKEY="${DKIM_KEY_DIR}/${DOMAIN}.${SELECTOR}.key"
-DKIM_PUBKEY=$(rspamadm dkim_keygen -k "$DKIM_PRIVKEY" -s "$SELECTOR" -d "$DOMAIN" 2>/dev/null | grep 'record' | cut -d':' -f2-)
 
-# Fallback if keygen doesn't output (already exists), extract manually
+# if [ ! -f "$DKIM_PRIVKEY" ]; then
+#    # File doesn't exist, safe to generate
+#    log "Private key not found, generating new key..."
+#    rspamadm dkim_keygen -d "$DOMAIN" -s "$SELECTOR" -k "$DKIM_KEY" -b 2048
+# else
+#    log "DKIM private key already exists, skipping generation..."
+# fi
+
+
+
+set +e
+#DKIM_PUBKEY=$(rspamadm dkim_keygen -k "$DKIM_PRIVKEY" -s "$SELECTOR" -d "$DOMAIN" 2>/dev/null | grep 'record' | cut -d':' -f2-)
+
+#DKIM_PUBKEY=$(rspamadm dkim_keygen -k "$DKIM_PRIVKEY" -s "$SELECTOR" -d "$DOMAIN" | grep 'record' | cut -d':' -f2-)
+#log "TEST TEST TEST $DKIM_PUBKEY"
+set -e
+
+# Safety check fallback
+
+if [ -z "${DKIM_PUBKEY:-}" ]; then
+  log "Public key not restored, extracting manually"
+  DKIM_PUBKEY=""
+fi
+
+# Extract public key from private key manually
 if [ -z "$DKIM_PUBKEY" ] && [ -f "$DKIM_PRIVKEY" ]; then
+  log "Extracting public key"
   DKIM_PUBKEY=$(openssl rsa -in "$DKIM_PRIVKEY" -pubout 2>/dev/null \
     | openssl rsa -RSAPublicKey_in -pubin -outform DER 2>/dev/null \
     | base64 -w0 \
@@ -71,6 +97,11 @@ fi
 
 # Safety check fallback
 DKIM_PUBKEY="${DKIM_PUBKEY:-(could not extract key)}"
+
+# For local tests only when IP not assigned
+if [ -z "${PUBLIC_IP:-}" ]; then
+  PUBLIC_IP="testing"
+fi
 
 # Compose email (same as before, just inserting DKIM_PUBKEY properly)
 MAIL_FROM="${IWB_MAIL_USER}@$DOMAIN"
@@ -116,8 +147,20 @@ Blessings on your emails ✉️✨
 EOF
 )
 
+# --- Send email ---
+set -o pipefail
+
+# --- Send email ---
 echo -e "$BODY" | mail -s "$SUBJECT" -r "$MAIL_FROM" "$MAIL_TO"
+
+if [ $? -ne 0 ]; then
+  log "$ERR_PREFIX Failed to send DKIM email notification to $MAIL_TO"
+  return 1
+else
+  log "email sent to $IWB_MAIL_USER@$DOMAIN please check for required DNS records"
+fi
 
 log "Done." 
 
-exit 0
+
+(return 0 2>/dev/null) || exit 0

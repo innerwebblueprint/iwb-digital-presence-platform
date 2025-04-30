@@ -6,6 +6,15 @@
 : "${IWB_MAIL_PASS:?$IWB_MAIL_PASS not set}"
 : "${IWB_STORJ_WPOPS_BUCKET:?IWB_STORJ_WPOPS_BUCKET not set}"
 
+# Default module if not explicitly passed
+if [ -z "${MODULE}" ]; then
+  MODULE="ENV"
+fi
+
+# Central logging function
+log() {
+  echo -e "$IWB_PREFIX $IWB_BLUE[$MODULE]$IWB_RESET $1"
+}
 
 # === Output Styling ===
 export IWB_RED=$(printf '\033[0;31m')
@@ -18,6 +27,8 @@ export ERR_PREFIX="${IWB_RED}ERROR${IWB_RESET}"
 # === Core Directories ===
 export IWB_SCRIPTSDIR="/var/setup/scripts"
 export IWB_CONFIGDIR="/var/setup/configs"
+export IWB_MAILDIR="/var/mail"
+export IWB_BACKUP_DIR="/data/backup/mail"
 
 # === Persistent Data Directories ===
 export IWB_DATA_ROOT="/var/data"
@@ -32,7 +43,8 @@ export IWB_MARIADB_PID_FILE="${IWB_STATE_DIR}/mariadb-setup.pid"
 
 # === Storj Backup Keys ===
 export IWB_PA_SQL_BACKUP_PATH="${IWB_BACKUP_DIR}/postfixadmin.sql"
-export IWB_MAIL_BACKUP_PATH="${IWB_BACKUP_DIR}/maildir.tar.gz"
+
+export IWB_STORJ_MAIL_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/backups/mail/${IWB_DOMAIN}_mail_backup.tar.gz"
 
 export IWB_STORJ_PA_DB_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/mail/db/postfixadmin_${IWB_DOMAIN}.sql"
 export IWB_STORJ_MAIL_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/mail/email/${IWB_DOMAIN}_maildir.tar.gz"
@@ -40,11 +52,29 @@ export IWB_STORJ_CERT_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/certs/${IWB_DOM
 export IWB_DKIM_CERT_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/certs/${IWB_DOMAIN}_dkim_certs.tar.gz"
 
 # === Database Admin ===
-# Generate password if not already set
+# Generate password if not already set or no local state set
+# if [ -z "${IWB_MYSQL_ROOT_PASSWORD}" ]; then
+#   export IWB_MYSQL_ROOT_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
+#   echo "$IWB_PREFIX No Root password provided for Database Admin — generated one automatically."
+# fi
+
+PASSWORD_FILE="/var/data/state/iwb_mysql_root_password.txt"
+# 1. Check if it's already set from .env (like we do now)
 if [ -z "${IWB_MYSQL_ROOT_PASSWORD}" ]; then
-  export IWB_MYSQL_ROOT_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
-  echo "$IWB_PREFIX No Root password provided for Database Admin — generated one automatically."
+  # 2. Check if we have a saved version written to disk
+  if [ -f "$PASSWORD_FILE" ]; then
+    export IWB_MYSQL_ROOT_PASSWORD="$(cat "$PASSWORD_FILE")"
+    log "Loaded existing MySQL root password from $PASSWORD_FILE."
+  else
+    # 3. Else, generate a new one, export it, and save it
+    export IWB_MYSQL_ROOT_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)"
+    mkdir -p "$(dirname "$PASSWORD_FILE")"
+    echo "$IWB_MYSQL_ROOT_PASSWORD" > "$PASSWORD_FILE"
+    chmod 600 "$PASSWORD_FILE"
+    log "No root password provided for Database Admin - generated one automatically"
+  fi
 fi
+
 
 # === PostfixAdmin Config ===
 export IWB_POSTFIXADMIN_TEMPLATE="/var/setup/configs/mail/postfixadmin/config.local.template.php"

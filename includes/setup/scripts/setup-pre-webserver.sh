@@ -3,7 +3,9 @@
 
 set -e
 
-echo -e "${IWB_PREFIX} Setting up web server environment..."
+MODULE="PRE_WEB"
+
+log "Setting up web server environment..."
 
 # === Create webroot directories ===
 mkdir -p "$IWB_WEB_WP"
@@ -28,13 +30,13 @@ fi
 
 # === Link to all service webroots ===
 ln -sf "$COMING_SOON_OUTPUT" "$IWB_WEB_WP/index.html"
-echo -e "${IWB_PREFIX} Linked coming soon page for $IWB_WEB_WP"
+log "Linked coming soon page for $IWB_WEB_WP"
 
 ln -sf "$COMING_SOON_OUTPUT" "$IWB_WEB_POSTFIX/index.html"
-echo -e "${IWB_PREFIX} Linked coming soon page for $IWB_WEB_POSTFIX"
+log "Linked coming soon page for $IWB_WEB_POSTFIX"
 
 ln -sf "$COMING_SOON_OUTPUT" "$IWB_WEB_WEBMAIL/index.html"
-echo -e "${IWB_PREFIX} Linked coming soon page for $IWB_WEB_WEBMAIL"
+log "Linked coming soon page for $IWB_WEB_WEBMAIL"
 
 # === PHP-FPM Configuration ===
 echo -e "$IWB_PREFIX Linking PHP-FPM configuration..."
@@ -43,4 +45,6 @@ mkdir -p "$(dirname "$IWB_PHP_POOL_CONF")"
 ln -sf "$IWB_CONFIGDIR/php/php-fpm.conf" "$IWB_PHP_FPM_CONF"
 ln -sf "$IWB_CONFIGDIR/php/www.conf" "$IWB_PHP_POOL_CONF"
 
-return 0
+log "Web server setup complete"
+
+(return 0 2>/dev/null) || exit 0
