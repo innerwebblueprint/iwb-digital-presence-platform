@@ -110,18 +110,34 @@ case "$DATASET" in
     ;;
 
   wpdb)
+    # MODULE="RESTORE WPDB"
+    # log "Restoring WordPress database..."
+    # mkdir -p /var/data/backup/wordpress
+    # tar -xzf "$ARCHIVE_PATH" -C /var/data/backup/wordpress
+    # SQL_FILE="/var/data/backup/wordpress/${IWB_DOMAIN}_wordpress.sql"
+    # if [ -f "$SQL_FILE" ]; then
+    #   mysql --socket=/run/mysqld/mysqld.sock -u root -p"${IWB_MYSQL_ROOT_PASSWORD}" "${IWB_WORDPRESS_SQL_DBNAME}" < "$SQL_FILE"
+    #   log "WordPress DB restore completed."
+    # else
+    #   log "$ERR_PREFIX SQL dump not found after extraction."
+    # fi
+    # ;;
+
     MODULE="RESTORE WPDB"
     log "Restoring WordPress database..."
     mkdir -p /var/data/backup/wordpress
     tar -xzf "$ARCHIVE_PATH" -C /var/data/backup/wordpress
+
     SQL_FILE="/var/data/backup/wordpress/${IWB_DOMAIN}_wordpress.sql"
     if [ -f "$SQL_FILE" ]; then
-      mysql --socket=/run/mysqld/mysqld.sock -u root -p"${IWB_MYSQL_ROOT_PASSWORD}" "${IWB_WORDPRESS_SQL_DBNAME}" < "$SQL_FILE"
+      log "Importing SQL using WP-CLI..."
+      wp db import "$SQL_FILE" --path="/var/www/html/wordpress" --allow-root
       log "WordPress DB restore completed."
     else
       log "$ERR_PREFIX SQL dump not found after extraction."
     fi
     ;;
+
 
   wphtml)
     MODULE="RESTORE WPHTML"

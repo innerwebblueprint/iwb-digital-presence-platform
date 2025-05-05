@@ -75,7 +75,6 @@ if [ -z "${IWB_MYSQL_ROOT_PASSWORD}" ]; then
   fi
 fi
 
-
 # === PostfixAdmin Config ===
 export IWB_POSTFIXADMIN_TEMPLATE="/var/setup/configs/mail/postfixadmin/config.local.template.php"
 export IWB_POSTFIXADMIN_CONFIG_OUT="/var/setup/configs/mail/postfixadmin/config.local.php"
@@ -103,6 +102,32 @@ export IWB_WEB_POSTFIX="/var/www/html/postfixadmin/public"
 export IWB_WEB_WEBMAIL="/var/www/html/webmail/public"
 export IWB_HTML_TEMPLATE_DIR="/var/setup/html"
 
+# === WordPress ===
+IWB_WP_MYSQL_PASSWORD_FILE="/var/data/state/iwb_wp_mysql_password.txt"
+
+if [ -z "${IWB_WP_MYSQL_PASSWORD}" ]; then
+  # 2. Check if we have a saved version written to disk
+  if [ -f "$IWB_WP_MYSQL_PASSWORD_FILE" ]; then
+    export IWB_WP_MYSQL_PASSWORD="$(cat "$IWB_WP_MYSQL_PASSWORD_FILE")"
+    log "Loaded existing MySQL WP user password from $IWB_WP_MYSQL_PASSWORD_FILE."
+  else
+    # 3. Else, generate a new one, export it, and save it
+    export IWB_WP_MYSQL_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)"
+    mkdir -p "$(dirname "$IWB_WP_MYSQL_PASSWORD_FILE")"
+    echo "$IWB_WP_MYSQL_PASSWORD" > "$IWB_WP_MYSQL_PASSWORD_FILE"
+    chmod 600 "$IWB_WP_MYSQL_PASSWORD_FILE"
+    log "No password provided for WordPress DB user – generated one automatically."
+  fi
+fi
+
+export IWB_WP_MYSQL_HOST="localhost"
+#export IWB_WP_MYSQL_USER="${COMPOSE_PROJECT_NAME}wpuser"
+#export IWB_WP_MYSQL_DATABASE="${COMPOSE_PROJECT_NAME}_wpdb"
+#export IWB_WP_SITEURL="https://${IWB_DOMAIN}"
+#export IWB_WP_HOME="${IWB_WP_SITEURL}"
+export IWB_WP_ADMIN_USER="${COMPOSE_PROJECT_NAME}-webmaster"
+
+
 
 # === SSL Template Directory ===
 export IWB_SSL_TEMPLATE_DIR="${IWB_CONFIGDIR}/http/nginx/sites-available"
@@ -113,6 +138,7 @@ export IWB_CERT_BACKUP_DIR="/tmp/cert-backups"
 # === PHP Config Files ===
 export IWB_PHP_FPM_CONF="/etc/php81/php-fpm.conf"
 export IWB_PHP_POOL_CONF="/etc/php81/php-fpm.d/www.conf"
+export IWB_PHP_INI_CONF="/etc/php81/conf.d/99-php_custom_overrides.ini"
 
 # === Logging / Service Configs ===
 export IWB_RSYSLOG_CONF="/etc/rsyslog.d/10-postfix.conf"

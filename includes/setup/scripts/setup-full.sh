@@ -126,22 +126,28 @@ log "Attempting to restore user mailboxes for $IWB_DOMAIN..."
 if ! iwb-restore.sh mail latest; then
   log "$ERR_PREFIX No user mailboxes found... this is normal on a first run"
 fi
-
+ 
 # Setup RSPAMD
 log "Preparing rspamd setup for $IWB_DOMAIN..."
 if ! source /var/setup/scripts/setup-rspamd.sh; then
   log "$ERR_PREFIX Rspamd setup failed. Aborting container startup."
-  exit 1
+  (return 0 2>/dev/null) || exit 0
 fi
 
-
+# Setup Wordpress
+log "Setting up Wordpress for: www.$IWB_DOMAIN..."
+if ! source /var/setup/scripts/setup-wordpress.sh; then
+  log $MODULE "$ERR_PREFIX Setting up wordpress failed, aborting container startup."
+  (return 0 2>/dev/null) || exit 0
+fi
 
 # === Stop manually started MariaDB if needed ===
 if [ -f "$IWB_MARIADB_PID_FILE" ]; then
   PID=$(cat "$IWB_MARIADB_PID_FILE")
   echo "$IWB_PREFIX Shutting down temporary MariaDB (PID $PID)..."
   
-  kill "$PID"
+  #kill "$PID"
+  mysqladmin -u root -p"$IWB_MYSQL_ROOT_PASSWORD" shutdown
   
   for i in {1..10}; do
     if ! kill -0 "$PID" 2>/dev/null; then
@@ -157,9 +163,6 @@ if [ -f "$IWB_MARIADB_PID_FILE" ]; then
 
   rm -f "$IWB_MARIADB_PID_FILE"
 fi
-
-
-
 
 # Safe exit/return mechanism
 (return 0 2>/dev/null) || exit 0

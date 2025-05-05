@@ -2,27 +2,49 @@
 server {
     listen 80;
     server_name {{IWB_DOMAIN}} www.{{IWB_DOMAIN}};
-
     return 301 https://$host$request_uri;
 }
 
-# HTTPS server block
+# HTTPS server block for WordPress
 server {
     listen 443 ssl;
     server_name {{IWB_DOMAIN}} www.{{IWB_DOMAIN}};
 
     root /var/www/html/wordpress;
-    index index.html index.htm;
+    index index.php index.html index.htm;
 
     ssl_certificate /etc/letsencrypt/live/{{IWB_DOMAIN}}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/{{IWB_DOMAIN}}/privkey.pem;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
 
-    location / {
-        try_files $uri $uri/ =404;
-    }
-
     access_log /var/log/nginx/{{IWB_DOMAIN}}_ssl_access.log;
     error_log /var/log/nginx/{{IWB_DOMAIN}}_ssl_error.log;
+
+    # Main WordPress rule
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    # Pass PHP scripts to PHP-FPM
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass 127.0.0.1:9000;  # or unix:/run/php/php8.1-fpm.sock
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+    # Deny access to .htaccess and hidden files
+    location ~ /\. {
+        deny all;
+    }
+
+    # Optional: allow direct access to robots.txt and favicon.ico
+    location = /robots.txt  { access_log off; log_not_found off; }
+    location = /favicon.ico { access_log off; log_not_found off; }
+
+    # Optional: deny access to backup/config files
+    location ~* \.(bak|config|sql|fla|psd|ini|log|sh|inc|swp|dist)$ {
+        deny all;
+    }
 }

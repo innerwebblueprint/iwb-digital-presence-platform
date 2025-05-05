@@ -44,6 +44,7 @@ mkdir -p "$(dirname "$IWB_PHP_POOL_CONF")"
 
 ln -sf "$IWB_CONFIGDIR/php/php-fpm.conf" "$IWB_PHP_FPM_CONF"
 ln -sf "$IWB_CONFIGDIR/php/www.conf" "$IWB_PHP_POOL_CONF"
+ln -sf "$IWB_CONFIGDIR/php/99-php_custom_overrides.ini" "$IWB_PHP_INI_CONF"
 
 log "Web server setup complete"
 

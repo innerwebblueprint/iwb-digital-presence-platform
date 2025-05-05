@@ -3,7 +3,6 @@
 
 set -e
 
-
 # Load IWB environment
 MODULE="START"
 source /var/setup/scripts/setup-env.sh
@@ -58,12 +57,12 @@ echo "nameserver 127.0.0.1" > /etc/resolv.conf
 log "Setting up cron service..."
 source /var/setup/scripts/setup-cron.sh
 
-
 # Launch DKIM setup in background
 source /var/setup/scripts/setup-dkim.sh &
 
-sleep 2
-
+# ### DEBUG == Position b01 - Holding container open for debug..."
+# echo "$ERR_PREFIX  DEBUG == Position b01 - Holding container open for debug..."
+# tail -f /dev/null
 
 # Start supervisord in foreground
 echo -e "$IWB_PREFIX Launching supervisord..."

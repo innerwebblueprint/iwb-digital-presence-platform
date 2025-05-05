@@ -104,16 +104,27 @@ case "$DATASET" in
     ;;
 
   wpdb)
+    # MODULE="BACKUP WPDB"
+    # BACKUP_SOURCE_DIR="/var/data/backup/wordpress"
+    # mkdir -p "$BACKUP_SOURCE_DIR"
+    # SQL_DUMP_FILE="${BACKUP_SOURCE_DIR}/${IWB_DOMAIN}_wordpress.sql"
+
+    # log "Exporting WordPress database..."
+    # mysqldump --databases "${IWB_WP_MYSQL_DATABASE}" \
+    #   -u root --socket=/run/mysqld/mysqld.sock \
+    #   -p"${IWB_MYSQL_ROOT_PASSWORD}" > "$SQL_DUMP_FILE"
+    # ;;
     MODULE="BACKUP WPDB"
     BACKUP_SOURCE_DIR="/var/data/backup/wordpress"
     mkdir -p "$BACKUP_SOURCE_DIR"
     SQL_DUMP_FILE="${BACKUP_SOURCE_DIR}/${IWB_DOMAIN}_wordpress.sql"
 
-    log "Exporting WordPress database..."
-    mysqldump --databases "${IWB_WORDPRESS_SQL_DBNAME}" \
-      -u root --socket=/run/mysqld/mysqld.sock \
-      -p"${IWB_MYSQL_ROOT_PASSWORD}" > "$SQL_DUMP_FILE"
+    log "Exporting WordPress database using WP-CLI..."
+    wp db export "$SQL_DUMP_FILE" --path="/var/www/html/wordpress" --allow-root
     ;;
+
+
+
 
   wphtml)
     MODULE="BACKUP WPHTML"
