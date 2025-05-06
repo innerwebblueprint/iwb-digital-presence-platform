@@ -31,7 +31,7 @@ fi
 
 # Handle SSL certificate setup via Let's Encrypt
 log "Preparing certificate setup for $IWB_DOMAIN..."
-if ! source /var/setup/scripts/cert-setup.sh; then
+if ! source /var/setup/scripts/setup-sslcerts.sh; then
   log $MODULE "$ERR_PREFIX Certificate setup failed. Aborting container startup."
   exit 1
 fi

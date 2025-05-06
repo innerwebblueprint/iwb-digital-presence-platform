@@ -1,5 +1,5 @@
 #!/bin/bash
-# includes/setup/scripts/cert-setup.sh
+# includes/setup/scripts/setup-sslcerts.sh
 
 set -euo pipefail
 MODULE="SSL"
