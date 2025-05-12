@@ -14,6 +14,8 @@ mkdir -p /var/data/state
 printenv | awk -F= '{print "export " "\""$1"\"""=""\""$2"\"" }' > /var/data/state/docker-env.sh
 chmod +x /var/data/state/docker-env.sh
 
+mkdir -p /var/log/supervisord
+
 # Make iwb-backup.sh easily executable
 ln -s /var/setup/scripts/backup/iwb-backup.sh /usr/local/bin/iwb-backup.sh
 chmod +x /usr/local/bin/iwb-backup.sh

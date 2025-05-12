@@ -52,7 +52,12 @@ for TEMPLATE in "$SSL_TEMPLATE_DIR"/*ssl*.conf.template; do
     OUTPUT="$SSL_TEMPLATE_DIR/$BASENAME"
     LINK_TARGET="$NGINX_CONF_DIR/$BASENAME"
 
-    sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" "$TEMPLATE" > "$OUTPUT"
+    sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+    -e "s|{{COMPOSE_PROJECT_NAME}}|$COMPOSE_PROJECT_NAME|g" \
+    -e "s|{{IWB_STORJ_MEDIA_KEY}}|$IWB_STORJ_MEDIA_KEY|g" \
+    -e "s|{{IWB_STORJ_MEDIA_BUCKET}}|$IWB_STORJ_MEDIA_BUCKET|g" \
+    "$TEMPLATE" > "$OUTPUT"
+
     ln -sf "$OUTPUT" "$LINK_TARGET"
 
     log "Linked SSL config: $BASENAME"
@@ -65,7 +70,11 @@ done
 log "Setting up eMail"
 
 log "Creating Postfix configs"
-sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" $IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf.template > $IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf
+sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+    -e "s|{{PUBLIC_IP}}|$PUBLIC_IP|g" \
+    "$IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf.template" \
+    > "$IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf"
+
 
 sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
     "$IWB_CONFIGDIR/mail/dovecot/dovecot-99-full.conf.template" > "$IWB_CONFIGDIR/mail/dovecot/dovecot-99-full.conf"
@@ -138,6 +147,13 @@ fi
 log "Setting up Wordpress for: www.$IWB_DOMAIN..."
 if ! source /var/setup/scripts/setup-wordpress.sh; then
   log $MODULE "$ERR_PREFIX Setting up wordpress failed, aborting container startup."
+  (return 0 2>/dev/null) || exit 0
+fi
+
+# Setup N8N
+log "Setting up n8n at: n8n.$IWB_DOMAIN..."
+if ! source /var/setup/scripts/setup-n8n.sh; then
+  log $MODULE "$ERR_PREFIX Setting up n8n failed, aborting container startup."
   (return 0 2>/dev/null) || exit 0
 fi
 

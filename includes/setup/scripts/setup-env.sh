@@ -79,14 +79,14 @@ fi
 export IWB_POSTFIXADMIN_TEMPLATE="/var/setup/configs/mail/postfixadmin/config.local.template.php"
 export IWB_POSTFIXADMIN_CONFIG_OUT="/var/setup/configs/mail/postfixadmin/config.local.php"
 export IWB_POSTFIXADMIN_SYMLINK="/var/www/html/postfixadmin/config.local.php"
-export IWB_POSTFIXADMIN_SETUP_PASSWORD="iwb-internal-setup"
-
-export IWB_POSTFIXADMIN_SQL_DBNAME="${IWB_POSTFIXADMIN_SQL_DBNAME:-postfixadmin}"
-export IWB_POSTFIXADMIN_SQL_USER="${IWB_POSTFIXADMIN_SQL_USER:-postfixadmin}"
+export IWB_POSTFIXADMIN_SETUP_PASSWORD="iwb-internal-setup-only"
+export IWB_POSTFIXADMIN_SQL_DBNAME="${COMPOSE_PROJECT_NAME}-postfixadmin"
+export IWB_POSTFIXADMIN_SQL_USER="${COMPOSE_PROJECT_NAME}-postfixadmin"
 # Generate password if not already set
 if [ -z "${IWB_POSTFIXADMIN_SQL_PASSWORD}" ]; then
   export IWB_POSTFIXADMIN_SQL_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
-  echo "$IWB_PREFIX No DB password provided for PostfixAdmin — generated one automatically."
+  ## TO-DO Save this like I did the the other one. For now just getting rid of the log messge
+  #log "No DB password provided for PostfixAdmin — generated one automatically."
 fi
 
 # === RSPAMD Config === #
@@ -126,8 +126,6 @@ export IWB_WP_MYSQL_HOST="localhost"
 #export IWB_WP_SITEURL="https://${IWB_DOMAIN}"
 #export IWB_WP_HOME="${IWB_WP_SITEURL}"
 export IWB_WP_ADMIN_USER="${COMPOSE_PROJECT_NAME}-webmaster"
-
-
 
 # === SSL Template Directory ===
 export IWB_SSL_TEMPLATE_DIR="${IWB_CONFIGDIR}/http/nginx/sites-available"
