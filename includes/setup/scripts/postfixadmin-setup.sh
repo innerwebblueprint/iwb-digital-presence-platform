@@ -14,7 +14,7 @@ if [ -f "$IWB_POSTFIXADMIN_CONFIGURED_FLAG" ] && [ -f "$IWB_POSTFIXADMIN_SCHEMA_
   log "PostfixAdmin already configured and schema initialized. Skipping."
   return 0
 fi
-
+ 
 # === Generate config.local.php from template ===
 log "Generating config.local.php..."
 mkdir -p "$(dirname "$IWB_POSTFIXADMIN_CONFIG_OUT")"
@@ -106,7 +106,7 @@ EOF
 
   mysql -u root --socket=/run/mysqld/mysqld.sock -p"${IWB_MYSQL_ROOT_PASSWORD}" "${IWB_POSTFIXADMIN_SQL_DBNAME}" <<EOF
 INSERT INTO mailbox (username, password, name, maildir, quota, domain, local_part, active, created, modified)
-VALUES ('$IWB_FULL_EMAIL', '$IWB_MAIL_PASS_HASH', 'Postmaster', '${IWB_DOMAIN}/${IWB_MAIL_USER}/', 0, '${IWB_DOMAIN}', '${IWB_MAIL_USER}', 1, NOW(), NOW())
+VALUES ('$IWB_FULL_EMAIL', '$IWB_MAIL_PASS_HASH', '${IWB_MAIL_USER}', '${IWB_DOMAIN}/${IWB_MAIL_USER}/', 0, '${IWB_DOMAIN}', '${IWB_MAIL_USER}', 1, NOW(), NOW())
 ON DUPLICATE KEY UPDATE password = VALUES(password), active = 1;
 EOF
 

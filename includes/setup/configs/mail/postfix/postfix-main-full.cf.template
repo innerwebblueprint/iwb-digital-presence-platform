@@ -59,6 +59,8 @@ smtpd_sasl_type = dovecot
 smtpd_sasl_path = private/auth
 broken_sasl_auth_clients = yes
 
+smtp_bind_address = {{PUBLIC_IP}}
+
 milter_default_action = accept
 milter_protocol = 6
 smtpd_milters = inet:127.0.0.1:11332

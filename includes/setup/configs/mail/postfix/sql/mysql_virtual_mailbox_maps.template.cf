@@ -4,5 +4,5 @@
 user = {{IWB_POSTFIXADMIN_SQL_USER}}
 password = {{IWB_POSTFIXADMIN_SQL_PASSWORD}}
 hosts = 127.0.0.1
-dbname = postfixadmin
+dbname = {{IWB_POSTFIXADMIN_SQL_DBNAME}}
 query = SELECT maildir FROM mailbox WHERE username='%s' AND active = '1'
