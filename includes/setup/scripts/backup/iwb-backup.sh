@@ -104,32 +104,50 @@ case "$DATASET" in
     ;;
 
   wpdb)
-    # MODULE="BACKUP WPDB"
-    # BACKUP_SOURCE_DIR="/var/data/backup/wordpress"
-    # mkdir -p "$BACKUP_SOURCE_DIR"
-    # SQL_DUMP_FILE="${BACKUP_SOURCE_DIR}/${IWB_DOMAIN}_wordpress.sql"
-
-    # log "Exporting WordPress database..."
-    # mysqldump --databases "${IWB_WP_MYSQL_DATABASE}" \
-    #   -u root --socket=/run/mysqld/mysqld.sock \
-    #   -p"${IWB_MYSQL_ROOT_PASSWORD}" > "$SQL_DUMP_FILE"
-    # ;;
     MODULE="BACKUP WPDB"
     BACKUP_SOURCE_DIR="/var/data/backup/wordpress"
     mkdir -p "$BACKUP_SOURCE_DIR"
     SQL_DUMP_FILE="${BACKUP_SOURCE_DIR}/${IWB_DOMAIN}_wordpress.sql"
 
+    log "Enabling WordPress maintenance mode..."
+    wp maintenance-mode activate --path="/var/www/html/wordpress" --allow-root || {
+      log "$ERR_PREFIX Failed to enable maintenance mode — continuing anyway."
+    }
+
     log "Exporting WordPress database using WP-CLI..."
-    wp db export "$SQL_DUMP_FILE" --path="/var/www/html/wordpress" --allow-root
+    if wp db export "$SQL_DUMP_FILE" --path="/var/www/html/wordpress" --allow-root; then
+      log "Database export successful: $SQL_DUMP_FILE"
+    else
+      log "$ERR_PREFIX WordPress DB export failed."
+    fi
+
+    log "Disabling WordPress maintenance mode..."
+    wp maintenance-mode deactivate --path="/var/www/html/wordpress" --allow-root || {
+      log "$ERR_PREFIX Failed to disable maintenance mode — you may need to manually clear .maintenance"
+    }
     ;;
-
-
-
 
   wphtml)
     MODULE="BACKUP WPHTML"
     BACKUP_SOURCE_DIR="/var/www/html"
     ;;
+
+  n8n)
+    MODULE="BACKUP N8N"
+    BACKUP_SOURCE_DIR="/var/data/backup/n8n"
+    mkdir -p "$BACKUP_SOURCE_DIR"
+    N8N_DATA_DIR="/var/www/html/n8n"
+    N8N_BACKUP_FILE="$BACKUP_SOURCE_DIR/${IWB_DOMAIN}_n8n-backup.tar.gz"
+    log "${MODULE} Backing up n8n SQLite database and user files..."
+
+    if [ -d "$N8N_DATA_DIR" ]; then
+      tar -czf "$N8N_BACKUP_FILE" -C "$N8N_DATA_DIR" .
+      log "Backup archive created: $N8N_BACKUP_FILE"
+    else
+      log "$ERR_PREFIX No n8n data directory found at $N8N_DATA_DIR"
+    fi
+    ;;
+
 
   *)
     log "$ERR_PREFIX: Unknown dataset: $DATASET"
@@ -149,11 +167,31 @@ tar -czf "$ARCHIVE_FILE_PATH" -C "$BACKUP_SOURCE_DIR" .
 REMOTE_KEY_VERSIONED="sj://${IWB_STORJ_WPOPS_BUCKET}/IWBDPP/${DATASET}/${INTERVAL}/${ARCHIVE_FILENAME}"
 REMOTE_KEY_LATEST="sj://${IWB_STORJ_WPOPS_BUCKET}/IWBDPP/${DATASET}/latest/${IWB_DOMAIN}_${DATASET}_latest.tar.gz"
 
-log "Uploading backup to Storj (timestamped)..."
-storj_upload "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_VERSIONED"
+storj_upload_with_retry() {
+    local file="$1"
+    local key="$2"
+    local attempts=0
+    local success=false
 
-log "Uploading backup to Storj (latest)..."
-storj_upload "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_LATEST"
+    while [ $attempts -lt 3 ]; do
+        log "Uploading to Storj (attempt $((attempts + 1))): $key"
+        if storj_upload "$file" "$key"; then
+            success=true
+            break
+        fi
+        attempts=$((attempts + 1))
+        sleep 2
+    done
+
+    if [ "$success" != true ]; then
+        log "ERROR: Failed to upload $key after 3 attempts."
+        (return 1 2>/dev/null) || exit 1
+    fi
+}
+
+storj_upload_with_retry "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_VERSIONED"
+storj_upload_with_retry "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_LATEST"
+
 
 # --- Cleanup ---
 #rm -rf "$TMP_BACKUP_DIR"

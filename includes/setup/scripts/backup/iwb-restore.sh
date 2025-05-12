@@ -145,6 +145,13 @@ case "$DATASET" in
     tar -xzf "$ARCHIVE_PATH" -C /var/www/html
     ;;
 
+  n8n)
+    MODULE="RESTORE N8N"
+    log "Restoring n8n data directory..."
+    mkdir -p /var/www/html/n8n
+    tar -xzf "$ARCHIVE_PATH" -C /var/www/html/n8n
+    ;;
+
   *)
     log "$ERR_PREFIX Unknown dataset: $DATASET"
     (return 1 2>/dev/null) || exit 1
