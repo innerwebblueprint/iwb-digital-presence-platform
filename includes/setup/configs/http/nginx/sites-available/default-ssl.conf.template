@@ -32,6 +32,7 @@ server {
         fastcgi_pass 127.0.0.1:9000;  # or unix:/run/php/php8.1-fpm.sock
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_read_timeout 120;
     }
 
     # Deny access to .htaccess and hidden files
@@ -48,3 +49,25 @@ server {
         deny all;
     }
 }
+
+server { # Storj http reverse proxy
+    listen 443 ssl;
+    server_name {{COMPOSE_PROJECT_NAME}}media.{{IWB_DOMAIN}};
+
+    ssl_certificate /etc/letsencrypt/live/{{IWB_DOMAIN}}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{IWB_DOMAIN}}/privkey.pem;
+
+    access_log /var/log/nginx/{{COMPOSE_PROJECT_NAME}}media-access.log;
+    error_log /var/log/nginx/{{COMPOSE_PROJECT_NAME}}media-error.log;
+
+    location / {
+        resolver 127.0.0.1;                                       
+        rewrite ^/(.*)$ /$1 break;
+        proxy_pass http://link.storjshare.io/raw/{{IWB_STORJ_MEDIA_KEY}}/{{IWB_STORJ_MEDIA_BUCKET}}/$1;
+        proxy_set_header Host link.storjshare.io;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_http_version 1.1;
+    }
+}
+
