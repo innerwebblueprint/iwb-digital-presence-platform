@@ -65,10 +65,6 @@ if [ "$IWB_WORDPRESS_RESTORED" != "true" ]; then
     --path="$WP_ROOT" \
     --allow-root
 
-  # File permissions
-  chown -R nginx:nginx "$WP_ROOT"
-  rm /var/www/html/wordpress/index.html
-
   OUTPUT=$(mysql -u root -p"$IWB_MYSQL_ROOT_PASSWORD" -e "SELECT user FROM mysql.user WHERE user = '$IWB_WP_MYSQL_USER';" 2>&1)
 
   log "MySQL user check output:\n$OUTPUT"
@@ -77,5 +73,13 @@ if [ "$IWB_WORDPRESS_RESTORED" != "true" ]; then
   # Launch WP admin email sending in background
   source /var/setup/scripts/send-wp-admin-email.sh &
 fi
+
+# File permissions
+chown -R nginx:nginx "$WP_ROOT"
+if [ -f /var/www/html/wordpress/index.html ]; then
+  rm /var/www/html/wordpress/index.html
+  log "Removed existing index.html placeholder."
+fi
+
 
 (return 0 2>/dev/null) || exit 0
