@@ -35,7 +35,8 @@ RUN apk add --no-cache nginx certbot certbot-nginx
 RUN apk add --no-cache \
     php81 php81-cli php81-fpm php81-common php81-mysqli php81-mbstring php81-session php81-json \
     php81-openssl php81-curl php81-phar php81-zlib php81-xml php81-dom php81-tokenizer php81-fileinfo \
-    php81-imap php81-gd php81-intl php81-pdo php81-pdo_mysql php81-soap
+    php81-imap php81-gd php81-intl php81-pdo php81-pdo_mysql php81-soap \
+    php81-ctype
 
 # PHP extensions for cryptography and large numbers
 RUN apk add --no-cache php81-gmp php81-bcmath
