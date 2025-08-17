@@ -38,6 +38,11 @@ grep -q "iwb-backup.sh n8n hourly" "$CRON_FILE" || echo "1 * * * * . /var/data/s
 
 #grep -q "iwb-logtest.sh" "$CRON_FILE" || echo "* * * * * . /var/data/state/docker-env.sh && iwb-logtest.sh 2>&1" >> "$CRON_FILE"
 
+## certbot renew
+grep -q "/usr/bin/certbot renew --quiet --deploy-hook" "$CRON_FILE" || \
+echo "0 3 * * * /usr/bin/certbot renew --quiet --deploy-hook \"/var/setup/scripts/cert-renew-hook.sh\" > /dev/null 2>&1" >> "$CRON_FILE"
+
+
 log "Cron jobs configured."
 
 MODULE=$CALL_MODULE
