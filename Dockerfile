@@ -56,6 +56,14 @@ RUN wget -O /tmp/uplink.zip https://github.com/storj/storj/releases/latest/downl
     chmod +x /usr/local/bin/uplink && \
     rm -rf /tmp/uplink.zip /tmp/uplink
 
+# Install Akash CLI (provider-services)
+RUN cd /tmp && \
+    curl -sfL https://raw.githubusercontent.com/akash-network/provider/main/install.sh | bash && \
+    mv ./bin/provider-services /usr/local/bin/provider-services && \
+    chmod +x /usr/local/bin/provider-services && \
+    rm -rf ./bin
+
+
 # Install wp-cli and allow root usage
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
     chmod +x wp-cli.phar && \
