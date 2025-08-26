@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install required packages
 # Core system utilities and setup tools
 RUN apk update && apk add --no-cache \
-    bash rsyslog curl nano coreutils iputils unzip wget supervisor cronie dnsmasq tree
+    bash rsyslog curl nano coreutils iputils unzip wget supervisor cronie dnsmasq tree sudo jq
 
 # Python & build tools
 RUN apk add --no-cache \
@@ -80,10 +80,24 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
     printf '#!/bin/sh\nexec /usr/local/bin/wp-cli.phar --allow-root "$@"\n' > /usr/local/bin/wp && \
     chmod +x /usr/local/bin/wp
 
-# Install n8n
+# Install n8n and create dedicated user
 RUN npm install -g n8n
-RUN mkdir -p /var/www/html/n8n && \
-    ln -sf /var/www/html/n8n /root/.n8n
+
+# Create n8n user and group
+RUN addgroup -g 9001 n8n && \
+    adduser -D -u 9001 -G n8n -s /bin/bash -h /home/n8n n8n
+
+# Create n8n data directory with proper ownership
+RUN mkdir -p /var/www/html/n8n /home/n8n && \
+    chown -R n8n:n8n /var/www/html/n8n /home/n8n && \
+    ln -sf /var/www/html/n8n /home/n8n/.n8n && \
+    chmod 700 /var/www/html/n8n
+
+# Configure sudo for n8n user to run only provider-services as root
+RUN echo "n8n ALL=(root) NOPASSWD: /usr/local/bin/provider-services" > /etc/sudoers.d/n8n && \
+    chmod 440 /etc/sudoers.d/n8n && \
+    touch /var/log/n8n-commands.log && \
+    chown n8n:n8n /var/log/n8n-commands.log
 
 
 # Ensure correct vmail user and group
@@ -113,7 +127,10 @@ ADD includes/includes.cache-buster /tmp/includes.cache-buster
 COPY includes/ .
 
 # Ensure scripts are executable
-RUN chmod -R +x /var/setup/scripts/* 
+RUN chmod -R +x /var/setup/scripts/* && \
+    cp /var/setup/scripts/n8n-command-wrapper.sh /usr/local/bin/n8n-cmd && \
+    chmod +x /usr/local/bin/n8n-cmd && \
+    chown root:root /usr/local/bin/n8n-cmd 
 
 # Expose standard mail ports
 EXPOSE 25 587 993 143 110 4190 5678

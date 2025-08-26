@@ -1,0 +1,101 @@
+#!/bin/bash
+
+# n8n Command Wrapper Script
+# This script provides a safe interface for n8n to execute specific commands
+# with proper argument validation and logging
+
+set -euo pipefail
+
+# Define allowed commands and their paths
+UPLINK_CMD="/usr/local/bin/uplink"
+PROVIDER_SERVICES_CMD="/usr/local/bin/provider-services"
+
+# Logging function
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] n8n-wrapper: $*" | tee -a /var/log/n8n-commands.log
+}
+
+# Input validation function
+validate_args() {
+    local cmd="$1"
+    shift
+    local args=("$@")
+    
+    # Basic validation to prevent command injection
+    for arg in "${args[@]}"; do
+        if [[ "$arg" =~ [;&|><\$\`] ]]; then
+            log "SECURITY: Rejected potentially dangerous argument: $arg"
+            return 1
+        fi
+    done
+    
+    case "$cmd" in
+        "uplink")
+            # Add specific uplink argument validation here if needed
+            log "Executing uplink with args: ${args[*]}"
+            return 0
+            ;;
+        "provider-services")
+            # Add specific provider-services argument validation here if needed
+            log "Executing provider-services with args: ${args[*]}"
+            return 0
+            ;;
+        *)
+            log "SECURITY: Unknown command requested: $cmd"
+            return 1
+            ;;
+    esac
+}
+
+# Main execution function
+execute_command() {
+    local cmd="$1"
+    shift
+    local args=("$@")
+    
+    case "$cmd" in
+        "uplink")
+            if [[ -x "$UPLINK_CMD" ]]; then
+                # Run uplink directly as n8n user (no sudo needed since we're already n8n)
+                "$UPLINK_CMD" "${args[@]}"
+            else
+                log "ERROR: uplink command not found or not executable"
+                exit 1
+            fi
+            ;;
+        "provider-services")
+            if [[ -x "$PROVIDER_SERVICES_CMD" ]]; then
+                sudo "$PROVIDER_SERVICES_CMD" "${args[@]}"
+            else
+                log "ERROR: provider-services command not found or not executable"
+                exit 1
+            fi
+            ;;
+        *)
+            log "ERROR: Invalid command: $cmd"
+            exit 1
+            ;;
+    esac
+}
+
+# Main script logic
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $0 <command> [args...]"
+    echo "Allowed commands: uplink, provider-services"
+    exit 1
+fi
+
+COMMAND="$1"
+shift
+ARGS=("$@")
+
+log "Command request: $COMMAND with args: ${ARGS[*]}"
+
+# Validate and execute
+if validate_args "$COMMAND" "${ARGS[@]}"; then
+    execute_command "$COMMAND" "${ARGS[@]}"
+    log "Command completed successfully: $COMMAND"
+else
+    log "Command validation failed: $COMMAND"
+    exit 1
+fi

@@ -150,6 +150,9 @@ case "$DATASET" in
     log "Restoring n8n data directory..."
     mkdir -p /var/www/html/n8n
     tar -xzf "$ARCHIVE_PATH" -C /var/www/html/n8n
+    # Set proper ownership for n8n user
+    chown -R n8n:n8n /var/www/html/n8n
+    log "Set ownership of n8n data to n8n:n8n"
     ;;
 
   *)
