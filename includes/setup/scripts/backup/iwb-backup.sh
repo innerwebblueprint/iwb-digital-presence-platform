@@ -74,12 +74,12 @@ case "$DATASET" in
     SQL_DUMP_FILE="${BACKUP_SOURCE_DIR}/${IWB_DOMAIN}_postfixadmin.sql"
 
     log "Exporting PostfixAdmin database..."
-    mysqldump --databases "${IWB_POSTFIXADMIN_SQL_DBNAME}" \
+    mariadb-dump --databases "${IWB_POSTFIXADMIN_SQL_DBNAME}" \
       -u root --socket=/run/mysqld/mysqld.sock \
       -p"${IWB_MYSQL_ROOT_PASSWORD}" > "$SQL_DUMP_FILE"
 
     ## This was recomended as a better command..???
-    # mysqldump --databases "${IWB_POSTFIXADMIN_SQL_DBNAME}" \
+    # mariadb-dump --databases "${IWB_POSTFIXADMIN_SQL_DBNAME}" \
     #   --add-drop-database \
     #   --add-drop-table \
     #   --single-transaction \

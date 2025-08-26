@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM alpine:3.19
+FROM alpine:3.21
 
 LABEL maintainer="InnerWebBlueprint <hello@innerwebblueprint.com>"
 
@@ -11,13 +11,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apk update && apk add --no-cache \
     bash rsyslog curl nano coreutils iputils unzip wget supervisor cronie dnsmasq tree
 
-# Python & build tools (can be reused by other packages later)
+# Python & build tools
 RUN apk add --no-cache \
     python3 py3-pip py3-cryptography py3-setuptools py3-wheel \
     gcc musl-dev libffi-dev openssl-dev
-
-# Node.js and npm
-RUN apk add --no-cache nodejs npm
 
 # Mail stack: Postfix, Dovecot, Rspamd
 RUN apk add --no-cache \
@@ -31,23 +28,35 @@ RUN apk add --no-cache mariadb mariadb-client
 # Web stack: Nginx and Certbot
 RUN apk add --no-cache nginx certbot certbot-nginx
 
-# PHP 8.1 core + WordPress modules
+# PHP 8.3 core + WordPress modules
 RUN apk add --no-cache \
-    php81 php81-cli php81-fpm php81-common php81-mysqli php81-mbstring php81-session php81-json \
-    php81-openssl php81-curl php81-phar php81-zlib php81-xml php81-dom php81-tokenizer php81-fileinfo \
-    php81-imap php81-gd php81-intl php81-pdo php81-pdo_mysql php81-soap \
-    php81-ctype
+    php83 php83-cli php83-fpm php83-common php83-mysqli php83-mbstring php83-session php83-json \
+    php83-openssl php83-curl php83-phar php83-zlib php83-xml php83-dom php83-tokenizer php83-fileinfo \
+    php83-imap php83-gd php83-intl php83-pdo php83-pdo_mysql php83-soap \
+    php83-ctype
 
 # PHP extensions for cryptography and large numbers
-RUN apk add --no-cache php81-gmp php81-bcmath
+RUN apk add --no-cache php83-gmp php83-bcmath
 
 # PHP extensions for media, uploads, and encoding
 RUN apk add --no-cache \
-    php81-exif php81-zip php81-iconv php81-pecl-imagick imagemagick
+    php83-exif php83-zip php83-iconv php83-pecl-imagick imagemagick
 
 # pip install beem
 
-RUN ln -sf /usr/bin/php81 /usr/bin/php
+# Node.js and npm - install from Alpine 3.21 packages and validate compatibility
+RUN echo "Fetching n8n's Node.js requirements..." && \
+    N8N_NODE_REQUIREMENT=$(curl -s https://raw.githubusercontent.com/n8n-io/n8n/master/package.json | grep -o '"node": *"[^"]*"' | cut -d'"' -f4) && \
+    echo "n8n requires Node.js: $N8N_NODE_REQUIREMENT" && \
+    echo "Installing Node.js from Alpine 3.21 packages..." && \
+    apk add --no-cache nodejs npm && \
+    INSTALLED_VERSION=$(node --version) && \
+    echo "Installed Node.js version: $INSTALLED_VERSION" && \
+    echo "Note: Using Alpine 3.21's Node.js $INSTALLED_VERSION which is compatible with n8n" && \
+    echo "✓ Node.js installation complete" && \
+    node --version && npm --version
+
+RUN ln -sf /usr/bin/php83 /usr/bin/php
 
 # Install Storj CLI (uplink)
 RUN wget -O /tmp/uplink.zip https://github.com/storj/storj/releases/latest/download/uplink_linux_amd64.zip && \

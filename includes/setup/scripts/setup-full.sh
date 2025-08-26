@@ -163,7 +163,7 @@ if [ -f "$IWB_MARIADB_PID_FILE" ]; then
   echo "$IWB_PREFIX Shutting down temporary MariaDB (PID $PID)..."
   
   #kill "$PID"
-  mysqladmin -u root -p"$IWB_MYSQL_ROOT_PASSWORD" shutdown
+  mariadb-admin -u root -p"$IWB_MYSQL_ROOT_PASSWORD" shutdown
   
   for i in {1..10}; do
     if ! kill -0 "$PID" 2>/dev/null; then

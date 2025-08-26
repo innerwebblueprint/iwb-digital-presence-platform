@@ -12,7 +12,7 @@ set -e
 echo "$IWB_PREFIX Checking for PostfixAdmin SQL backup on Storj..."
 if uplink cp "$IWB_STORJ_PA_DB_KEY" "$IWB_PA_SQL_BACKUP_PATH" > /dev/null 2>&1; then
   echo "$IWB_PREFIX Downloaded SQL backup successfully. Importing..."
-  mysql -u root --socket=/run/mysqld/mysqld.sock -p"${IWB_MYSQL_ROOT_PASSWORD}" < "$IWB_PA_SQL_BACKUP_PATH"
+  mariadb -u root --socket=/run/mysqld/mysqld.sock -p"${IWB_MYSQL_ROOT_PASSWORD}" < "$IWB_PA_SQL_BACKUP_PATH"
 else
   echo "$IWB_PREFIX Backup not found on Storj. Skipping restore."
   return 1

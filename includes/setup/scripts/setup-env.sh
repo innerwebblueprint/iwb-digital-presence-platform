@@ -134,9 +134,9 @@ export IWB_CERT_BACKUP_DIR="/tmp/cert-backups"
 
 
 # === PHP Config Files ===
-export IWB_PHP_FPM_CONF="/etc/php81/php-fpm.conf"
-export IWB_PHP_POOL_CONF="/etc/php81/php-fpm.d/www.conf"
-export IWB_PHP_INI_CONF="/etc/php81/conf.d/99-php_custom_overrides.ini"
+export IWB_PHP_FPM_CONF="/etc/php83/php-fpm.conf"
+export IWB_PHP_POOL_CONF="/etc/php83/php-fpm.d/www.conf"
+export IWB_PHP_INI_CONF="/etc/php83/conf.d/99-php_custom_overrides.ini"
 
 # === Logging / Service Configs ===
 export IWB_RSYSLOG_CONF="/etc/rsyslog.d/10-postfix.conf"

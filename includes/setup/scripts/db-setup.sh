@@ -27,7 +27,7 @@ sed -i '/skip-networking/d' /etc/my.cnf.d/mariadb-server.cnf
 # Initialize MariaDB if it's missing
 if [ ! -d /var/lib/mysql/mysql ]; then
   log "Detected uninitialized MariaDB directory. Bootstrapping..."
-  mysql_install_db --user=mysql --basedir=/usr --datadir=/var/lib/mysql > /dev/null 2>&1
+  mariadb-install-db --user=mysql --basedir=/usr --datadir=/var/lib/mysql > /dev/null 2>&1
 fi
 
 # Start MariaDB manually for setup
@@ -38,7 +38,7 @@ SAFE_WRAPPER_PID=$!
 # Wait for MariaDB to become available
 MAX_TRIES=20
 TRIES=0
-until mysqladmin ping --silent --socket=/run/mysqld/mysqld.sock; do
+until mariadb-admin ping --silent --socket=/run/mysqld/mysqld.sock; do
   if [ "$TRIES" -ge "$MAX_TRIES" ]; then
     echo "${IWB_PREFIX} ${ERR_PREFIX} MariaDB did not start after $MAX_TRIES attempts. Aborting setup."
     tail -n 50 /tmp/mariadb.log
@@ -65,7 +65,7 @@ log "MariaDB is up and running. Continuing with setup."
 # Set root password if first-time
 if [ ! -f "$IWB_DB_INIT_FLAG" ]; then
   log "Setting root password..."
-  mysql -u root --socket=/run/mysqld/mysqld.sock -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${IWB_MYSQL_ROOT_PASSWORD}'; FLUSH PRIVILEGES;"
+  mariadb -u root --socket=/run/mysqld/mysqld.sock -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${IWB_MYSQL_ROOT_PASSWORD}'; FLUSH PRIVILEGES;"
   touch "$IWB_DB_INIT_FLAG"
 fi
 

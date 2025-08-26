@@ -13,7 +13,7 @@ echo "$IWB_PREFIX Backing up PostfixAdmin database to Storj..."
 
 # Dump the postfixadmin DB
 mkdir -p "$(dirname "$IWB_PA_SQL_BACKUP_PATH")"
-mysqldump --databases "${IWB_POSTFIXADMIN_SQL_DBNAME}" -u root --socket=/run/mysqld/mysqld.sock -p"${IWB_MYSQL_ROOT_PASSWORD}" > "$IWB_PA_SQL_BACKUP_PATH"
+mariadb-dump --databases "${IWB_POSTFIXADMIN_SQL_DBNAME}" -u root --socket=/run/mysqld/mysqld.sock -p"${IWB_MYSQL_ROOT_PASSWORD}" > "$IWB_PA_SQL_BACKUP_PATH"
 
 
 # Upload to Storj

@@ -82,7 +82,7 @@ case "$DATASET" in
     tar -xzf "$ARCHIVE_PATH" -C /var/data/backup/postfix
     SQL_FILE="/var/data/backup/postfix/${IWB_DOMAIN}_postfixadmin.sql"
     if [ -f "$SQL_FILE" ]; then
-      mysql --socket=/run/mysqld/mysqld.sock -u root -p"${IWB_MYSQL_ROOT_PASSWORD}" < "$SQL_FILE"
+      mariadb --socket=/run/mysqld/mysqld.sock -u root -p"${IWB_MYSQL_ROOT_PASSWORD}" < "$SQL_FILE"
       log "PostfixAdmin DB restore completed."
     else
       log "$ERR_PREFIX SQL dump not found after extraction."

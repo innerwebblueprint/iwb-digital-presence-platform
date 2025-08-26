@@ -13,7 +13,7 @@ TEMP_PASS_FILE="/tmp/wp-admin-pass.txt"
 # === Ensure DB user always exists
 log "Ensure database and user '${IWB_WP_MYSQL_USER}' exist..."
 
-mysql -u root --socket=/run/mysqld/mysqld.sock -p"${IWB_MYSQL_ROOT_PASSWORD}" <<EOF
+mariadb -u root --socket=/run/mysqld/mysqld.sock -p"${IWB_MYSQL_ROOT_PASSWORD}" <<EOF
 CREATE DATABASE IF NOT EXISTS \`${IWB_WP_MYSQL_DATABASE}\`;
 CREATE USER IF NOT EXISTS '${IWB_WP_MYSQL_USER}'@'localhost' IDENTIFIED BY '${IWB_WP_MYSQL_PASSWORD}';
 ALTER USER '${IWB_WP_MYSQL_USER}'@'localhost' IDENTIFIED BY '${IWB_WP_MYSQL_PASSWORD}';
@@ -21,7 +21,7 @@ GRANT ALL PRIVILEGES ON \`${IWB_WP_MYSQL_DATABASE}\`.* TO '${IWB_WP_MYSQL_USER}'
 FLUSH PRIVILEGES;
 EOF
 
-OUTPUT=$(mysql -u root -p"$IWB_MYSQL_ROOT_PASSWORD" -e "SELECT user FROM mysql.user WHERE user = '$IWB_WP_MYSQL_USER';" 2>&1)
+OUTPUT=$(mariadb -u root -p"$IWB_MYSQL_ROOT_PASSWORD" -e "SELECT user FROM mysql.user WHERE user = '$IWB_WP_MYSQL_USER';" 2>&1)
 log "MySQL user check output:\n$OUTPUT"
 
 
@@ -65,7 +65,7 @@ if [ "$IWB_WORDPRESS_RESTORED" != "true" ]; then
     --path="$WP_ROOT" \
     --allow-root
 
-  OUTPUT=$(mysql -u root -p"$IWB_MYSQL_ROOT_PASSWORD" -e "SELECT user FROM mysql.user WHERE user = '$IWB_WP_MYSQL_USER';" 2>&1)
+  OUTPUT=$(mariadb -u root -p"$IWB_MYSQL_ROOT_PASSWORD" -e "SELECT user FROM mysql.user WHERE user = '$IWB_WP_MYSQL_USER';" 2>&1)
 
   log "MySQL user check output:\n$OUTPUT"
 
