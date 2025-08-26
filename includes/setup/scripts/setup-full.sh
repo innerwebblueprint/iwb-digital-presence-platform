@@ -10,6 +10,12 @@ if ! source /var/setup/scripts/storage-providers/storage-router.sh; then
   exit 1
 fi
 
+# Setup n8n secure environment (after storage setup so we have bucket name)
+log "Setting up secure n8n environment..."
+if ! source /var/setup/scripts/n8n-env-setup.sh; then
+  log "$ERR_PREFIX n8n environment setup failed... Continuing anyway."
+fi
+
 # Setup Database Enviornment
 log "Setup and verify Database Enviornment"
 if ! source /var/setup/scripts/db-setup.sh; then

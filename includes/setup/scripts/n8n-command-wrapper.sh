@@ -3,12 +3,20 @@
 # n8n Command Wrapper Script
 # This script provides a safe interface for n8n to execute specific commands
 # with proper argument validation and logging
+# SECURITY: Runs with clean environment to prevent access to sensitive variables
 
 set -euo pipefail
 
 # Define allowed commands and their paths
 UPLINK_CMD="/usr/local/bin/uplink"
 PROVIDER_SERVICES_CMD="/usr/local/bin/provider-services"
+
+# Load only the specific environment variables n8n needs
+# This prevents n8n from accessing sensitive variables
+if [ -f /var/setup/.env ]; then
+    # Extract only the bucket name, nothing else
+    export IWB_STORJ_WPOPS_BUCKET=$(grep "^IWB_STORJ_WPOPS_BUCKET=" /var/setup/.env 2>/dev/null | cut -d'=' -f2- | tr -d '"' || echo "")
+fi
 
 # Logging function
 log() {
@@ -56,8 +64,12 @@ execute_command() {
     case "$cmd" in
         "uplink")
             if [[ -x "$UPLINK_CMD" ]]; then
-                # Run uplink directly as n8n user (no sudo needed since we're already n8n)
-                "$UPLINK_CMD" "${args[@]}"
+                # Run uplink with clean environment, only essential variables
+                env -i \
+                    HOME="/home/n8n" \
+                    PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+                    IWB_STORJ_WPOPS_BUCKET="$IWB_STORJ_WPOPS_BUCKET" \
+                    "$UPLINK_CMD" "${args[@]}"
             else
                 log "ERROR: uplink command not found or not executable"
                 exit 1
@@ -65,7 +77,11 @@ execute_command() {
             ;;
         "provider-services")
             if [[ -x "$PROVIDER_SERVICES_CMD" ]]; then
-                sudo "$PROVIDER_SERVICES_CMD" "${args[@]}"
+                # Run provider-services as root with minimal environment
+                sudo env -i \
+                    HOME="/root" \
+                    PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+                    "$PROVIDER_SERVICES_CMD" "${args[@]}"
             else
                 log "ERROR: provider-services command not found or not executable"
                 exit 1

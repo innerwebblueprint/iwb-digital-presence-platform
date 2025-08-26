@@ -2,7 +2,28 @@
 
 ## Overview
 
-This container now runs n8n as a dedicated `n8n` user (UID 9001) instead of root for enhanced security. The n8n user has limited sudo privileges to execute only the specific commands needed for Akash deployment operations.
+This container runs n8n as a dedicated `n8n` user (UID 9001) with strict environment isolation for enhanced security. The n8n process has access to only the minimal environment variables needed for operation, preventing access to sensitive credentials.
+
+## Security Features
+
+1. **User Isolation**: n8n runs as user `n8n` (UID 9001) with its own home directory
+2. **Environment Isolation**: n8n runs with a clean environment, only specific variables allowed
+3. **Limited Sudo**: Only specific commands can be executed with elevated privileges
+4. **Command Validation**: The wrapper script validates arguments to prevent injection attacks
+5. **Audit Logging**: All command executions are logged to `/var/log/n8n-commands.log`
+6. **No Shell Access**: The n8n user cannot escalate to a root shell
+
+## Environment Access
+
+### 🔒 **Protected Variables (n8n CANNOT access these)**:
+- `IWB_MYSQL_ROOT_PASSWORD` - Database credentials
+- `IWB_STORJ_GRANT` - Storj access tokens
+- `IWB_POSTFIXADMIN_SQL_PASSWORD` - Mail system credentials
+- All other sensitive environment variables
+
+### ✅ **Allowed Variables (n8n CAN access these)**:
+- `IWB_STORJ_WPOPS_BUCKET` - Only the bucket name for operations
+- Standard system variables: `HOME`, `PATH`, `N8N_*` configuration
 
 ## Allowed Commands
 
@@ -80,6 +101,32 @@ sudo /usr/local/bin/provider-services --help
 
 # Incorrect
 uplink --help  # Command not in PATH for n8n user
+```
+
+## Security Testing
+
+### Verify Environment Isolation
+Test that sensitive variables are not accessible from n8n:
+
+```bash
+# In an n8n Execute Command node, these should return empty/fail:
+echo $IWB_MYSQL_ROOT_PASSWORD  # Should be empty
+echo $IWB_STORJ_GRANT         # Should be empty
+env | grep IWB_               # Should only show IWB_STORJ_WPOPS_BUCKET
+
+# This should work:
+echo $IWB_STORJ_WPOPS_BUCKET  # Should show: raywpops
+```
+
+### Test Command Restrictions
+```bash
+# These should work in n8n:
+/usr/local/bin/n8n-cmd uplink ls
+/usr/local/bin/n8n-cmd provider-services version
+
+# These should fail (no access to other commands):
+cat /etc/passwd
+mysql -u root  # Should fail - not in PATH
 ```
 
 ### Checking Command Availability
