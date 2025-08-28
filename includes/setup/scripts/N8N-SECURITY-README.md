@@ -30,6 +30,7 @@ This container runs n8n as a dedicated `n8n` user (UID 9001) with strict environ
 The n8n user has access to these commands:
 - `uplink` - Storj network operations (runs as n8n user with n8n's credentials)
 - `provider-services` - Akash network operations (runs as root via sudo)
+- `akash-wallet` - Akash wallet management for deployments (restore/cleanup operations)
 
 ## Usage in n8n Workflows
 
@@ -53,6 +54,11 @@ The wrapper script provides additional security validation and logging:
 
 # For provider-services commands
 /usr/local/bin/n8n-cmd provider-services query provider list
+
+# For akash-wallet commands
+/usr/local/bin/n8n-cmd akash-wallet restore
+/usr/local/bin/n8n-cmd akash-wallet info
+/usr/local/bin/n8n-cmd akash-wallet cleanup
 ```
 
 ## Security Features
