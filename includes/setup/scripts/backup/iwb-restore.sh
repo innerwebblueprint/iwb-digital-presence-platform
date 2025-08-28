@@ -2,7 +2,7 @@
 # includes/setup/scripts/backup/iwb-restore.sh
 
 # Usage: iwb-restore.sh <dataset> [timestamp]
-# Datasets: mail, postfix, ssl, dkim, rspamd, wpdb, wphtml
+# Datasets: mail, postfix, ssl, dkim, rspamd, wpdb, wphtml, akash
 # Timestamp (optional): e.g., 2025_04_26 or just 0426 (assumes current year)
 # If no timestamp is passed, 'latest' will be restored.
 
@@ -155,6 +155,40 @@ case "$DATASET" in
     log "Set ownership of n8n data to n8n:n8n"
     ;;
 
+  akash)
+    MODULE="RESTORE AKASH"
+    log "Restoring Akash wallet..."
+    mkdir -p /var/data/backup/akash
+    tar -xzf "$ARCHIVE_PATH" -C /var/data/backup/akash
+    
+    # Use COMPOSE_PROJECT_NAME for cleaner, shorter naming
+    AKASH_BACKUP_FILE="/var/data/backup/akash/${COMPOSE_PROJECT_NAME}_akash-deploy-backup.json"
+    
+    if [ -f "$AKASH_BACKUP_FILE" ]; then
+      # Read wallet information from backup
+      AKASH_WALLET_NAME=$(jq -r '.walletName' "$AKASH_BACKUP_FILE")
+      MNEMONIC=$(jq -r '.mnemonic' "$AKASH_BACKUP_FILE")
+      
+      if [ -n "$MNEMONIC" ] && [ "$MNEMONIC" != "null" ]; then
+        # Restore wallet to keyring
+        echo "$MNEMONIC" | provider-services keys add "$AKASH_WALLET_NAME" \
+          --recover \
+          --keyring-backend test \
+          --interactive=false >/dev/null 2>&1
+        
+        if [ $? -eq 0 ]; then
+          log "Akash wallet restored to keyring: $AKASH_WALLET_NAME"
+        else
+          log "$ERR_PREFIX Failed to restore Akash wallet to keyring"
+        fi
+      else
+        log "$ERR_PREFIX Invalid mnemonic in backup file"
+      fi
+    else
+      log "$ERR_PREFIX Akash backup JSON file not found: $AKASH_BACKUP_FILE"
+    fi
+    ;;
+
   *)
     log "$ERR_PREFIX Unknown dataset: $DATASET"
     (return 1 2>/dev/null) || exit 1
@@ -162,7 +196,7 @@ case "$DATASET" in
 esac
 
 # --- Cleanup ---
-#rm -rf "$TMP_RESTORE_DIR"
+rm -rf "$TMP_RESTORE_DIR"
 
 log "Restore for $DATASET completed."
 

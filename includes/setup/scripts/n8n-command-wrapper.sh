@@ -10,6 +10,7 @@ set -euo pipefail
 # Define allowed commands and their paths
 UPLINK_CMD="/usr/local/bin/uplink"
 PROVIDER_SERVICES_CMD="/usr/local/bin/provider-services"
+AKASH_WALLET_CMD="/var/setup/scripts/akash-wallet-restore.sh"
 
 # Load only the specific environment variables n8n needs
 # This prevents n8n from accessing sensitive variables
@@ -31,10 +32,12 @@ validate_args() {
     
     # Basic validation to prevent command injection
     for arg in "${args[@]}"; do
-        if [[ "$arg" =~ [;&|><\$\`] ]]; then
-            log "SECURITY: Rejected potentially dangerous argument: $arg"
-            return 1
-        fi
+        case "$arg" in
+            *";"*|*"&"*|*"|"*|*">"*|*"<"*|*'$'*|*'`'*)
+                log "SECURITY: Rejected potentially dangerous argument: $arg"
+                return 1
+                ;;
+        esac
     done
     
     case "$cmd" in
@@ -47,6 +50,16 @@ validate_args() {
             # Add specific provider-services argument validation here if needed
             log "Executing provider-services with args: ${args[*]}"
             return 0
+            ;;
+        "akash-wallet")
+            # Validate akash-wallet arguments (restore, cleanup, info)
+            if [ ${#args[@]} -eq 0 ] || [[ "${args[0]}" =~ ^(restore|cleanup|info)$ ]]; then
+                log "Executing akash-wallet with args: ${args[*]}"
+                return 0
+            else
+                log "SECURITY: Invalid akash-wallet action: ${args[0]}"
+                return 1
+            fi
             ;;
         *)
             log "SECURITY: Unknown command requested: $cmd"
@@ -77,13 +90,24 @@ execute_command() {
             ;;
         "provider-services")
             if [[ -x "$PROVIDER_SERVICES_CMD" ]]; then
-                # Run provider-services as root with minimal environment
-                sudo env -i \
+                # Run provider-services as root with minimal environment and non-interactive
+                echo "" | sudo env -i \
                     HOME="/root" \
                     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+                    DEBIAN_FRONTEND=noninteractive \
+                    AKASH_KEYRING_PASSPHRASE="" \
                     "$PROVIDER_SERVICES_CMD" "${args[@]}"
             else
                 log "ERROR: provider-services command not found or not executable"
+                exit 1
+            fi
+            ;;
+        "akash-wallet")
+            if [[ -x "$AKASH_WALLET_CMD" ]]; then
+                # Run akash-wallet script with full environment access (needed for Storj operations)
+                "$AKASH_WALLET_CMD" "${args[@]}"
+            else
+                log "ERROR: akash-wallet command not found or not executable"
                 exit 1
             fi
             ;;
@@ -97,7 +121,7 @@ execute_command() {
 # Main script logic
 if [[ $# -lt 1 ]]; then
     echo "Usage: $0 <command> [args...]"
-    echo "Allowed commands: uplink, provider-services"
+    echo "Allowed commands: uplink, provider-services, akash-wallet"
     exit 1
 fi
 

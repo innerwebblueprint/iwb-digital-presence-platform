@@ -18,13 +18,13 @@ mkdir -p /var/log/supervisord
 
 # Make iwb-backup.sh easily executable
 ln -s /var/setup/scripts/backup/iwb-backup.sh /usr/local/bin/iwb-backup.sh
-chmod +x /usr/local/bin/iwb-backup.sh
 ln -s /var/setup/scripts/backup/iwb-restore.sh /usr/local/bin/iwb-restore.sh
-chmod +x /usr/local/bin/iwb-restore.sh
 
 ## Log testing to test cron and debug
 ln -s /var/setup/scripts/backup/iwb-logtest.sh /usr/local/bin/iwb-logtest.sh
-chmod +x /usr/local/bin/iwb-logtest.sh
+
+# Make Akash wallet restore script easily accessible
+ln -s /var/setup/scripts/akash-wallet-restore.sh /usr/local/bin/akash-wallet-restore
 
 # Run setup based on IWB_MODE
 if [[ "$IWB_MODE" == "bare-bones-email-only" ]]; then
@@ -61,6 +61,9 @@ source /var/setup/scripts/setup-cron.sh
 
 # Launch DKIM setup in background
 source /var/setup/scripts/setup-dkim.sh &
+
+# Launch Akash wallet setup in background
+source /var/setup/scripts/setup-akash-wallet.sh &
 
 # ### DEBUG == Position b01 - Holding container open for debug..."
 # echo "$ERR_PREFIX  DEBUG == Position b01 - Holding container open for debug..."

@@ -2,8 +2,8 @@
 # includes/setup/scripts/setup-env.sh
 
 : "${IWB_DOMAIN:?IWB_DOMAIN not set}"
-: "${IWB_MAIL_USER:?$IWB_MAIL_USER not set}"
-: "${IWB_MAIL_PASS:?$IWB_MAIL_PASS not set}"
+: "${IWB_MAIL_USER:?IWB_MAIL_USER not set}"
+: "${IWB_MAIL_PASS:?IWB_MAIL_PASS not set}"
 : "${IWB_STORJ_WPOPS_BUCKET:?IWB_STORJ_WPOPS_BUCKET not set}"
 
 # Default module if not explicitly passed

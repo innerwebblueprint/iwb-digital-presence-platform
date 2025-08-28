@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install required packages
 # Core system utilities and setup tools
 RUN apk update && apk add --no-cache \
-    bash rsyslog curl nano coreutils iputils unzip wget supervisor cronie dnsmasq tree sudo jq
+    bash rsyslog curl nano coreutils iputils unzip wget supervisor cronie dnsmasq tree sudo jq bc netcat-openbsd
 
 # Python & build tools
 RUN apk add --no-cache \
@@ -126,10 +126,9 @@ WORKDIR /var
 ADD includes/includes.cache-buster /tmp/includes.cache-buster
 COPY includes/ .
 
-# Ensure scripts are executable
-RUN chmod -R +x /var/setup/scripts/* && \
-    cp /var/setup/scripts/n8n-command-wrapper.sh /usr/local/bin/n8n-cmd && \
-    chmod +x /usr/local/bin/n8n-cmd && \
+# Configure scripts and permissions
+RUN chmod -R +x /var/setup/scripts && \
+    ln -s /var/setup/scripts/n8n-command-wrapper.sh /usr/local/bin/n8n-cmd && \
     chown root:root /usr/local/bin/n8n-cmd 
 
 # Expose standard mail ports

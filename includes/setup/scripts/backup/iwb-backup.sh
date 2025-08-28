@@ -148,7 +148,6 @@ case "$DATASET" in
     fi
     ;;
 
-
   *)
     log "$ERR_PREFIX: Unknown dataset: $DATASET"
     (return 1 2>/dev/null) || exit 1
