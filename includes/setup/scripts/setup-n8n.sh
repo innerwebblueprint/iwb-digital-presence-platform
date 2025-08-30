@@ -12,12 +12,21 @@ if [ ! -d "/var/www/html/n8n" ]; then
   mkdir -p /var/www/html/n8n
 fi
 
-if [ ! -L "/root/.n8n" ]; then
-  log "${MODULE} Linking /root/.n8n to /var/www/html/n8n..."
-  rm -rf /root/.n8n 2>/dev/null || true
-  ln -sf /var/www/html/n8n /root/.n8n
+# Ensure proper ownership of the data directory
+chown -R n8n:n8n /var/www/html/n8n
+
+# Create symlink for the n8n user (not root) since supervisord runs as n8n user
+if [ ! -L "/home/n8n/.n8n" ]; then
+  log "${MODULE} Creating n8n user home directory..."
+  mkdir -p /home/n8n
+  chown n8n:n8n /home/n8n
+  
+  log "${MODULE} Linking /home/n8n/.n8n to /var/www/html/n8n..."
+  rm -rf /home/n8n/.n8n 2>/dev/null || true
+  ln -sf /var/www/html/n8n /home/n8n/.n8n
+  chown -h n8n:n8n /home/n8n/.n8n
 else
-  log "${MODULE} /root/.n8n is already linked to /var/www/html/n8n"
+  log "${MODULE} /home/n8n/.n8n is already linked to /var/www/html/n8n"
 fi
 
 # === Attempt restore from backup via iwb-restore.sh ===
@@ -37,7 +46,14 @@ export N8N_EDITOR_BASE_URL="https://n8n.${IWB_DOMAIN}"
 export WEBHOOK_URL="https://n8n.${IWB_DOMAIN}"
 export N8N_RUNNERS_ENABLED=true
 export N8N_RUNNERS_WORKER_COUNT=4
+
+# === Disable all telemetry and external connections ===
 export N8N_DIAGNOSTICS_ENABLED=false
+export N8N_VERSION_NOTIFICATIONS_ENABLED=false
+export N8N_TEMPLATES_ENABLED=false
+export EXTERNAL_FRONTEND_HOOKS_URLS=""
+export N8N_DIAGNOSTICS_CONFIG_FRONTEND=""
+export N8N_DIAGNOSTICS_CONFIG_BACKEND=""
 
 export N8N_JWT_SECRET="${IWB_N8N_JWT_SECRET:-$(openssl rand -hex 32)}"
 log "${MODULE} Full User Management enabled. First user must be created manually in UI."

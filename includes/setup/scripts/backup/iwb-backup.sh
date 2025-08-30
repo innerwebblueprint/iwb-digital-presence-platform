@@ -134,17 +134,34 @@ case "$DATASET" in
 
   n8n)
     MODULE="BACKUP N8N"
-    BACKUP_SOURCE_DIR="/var/data/backup/n8n"
-    mkdir -p "$BACKUP_SOURCE_DIR"
-    N8N_DATA_DIR="/var/www/html/n8n"
-    N8N_BACKUP_FILE="$BACKUP_SOURCE_DIR/${IWB_DOMAIN}_n8n-backup.tar.gz"
+    
+    # n8n data is stored in /var/www/html/n8n (persistent data directory, not web-served)
+    # Set BACKUP_SOURCE_DIR to follow the script's convention
+    BACKUP_SOURCE_DIR="/var/www/html/n8n"
+    
     log "${MODULE} Backing up n8n SQLite database and user files..."
-
-    if [ -d "$N8N_DATA_DIR" ]; then
-      tar -czf "$N8N_BACKUP_FILE" -C "$N8N_DATA_DIR" .
-      log "Backup archive created: $N8N_BACKUP_FILE"
+    
+    # Check if supervisord is running and stop n8n for consistent backup
+    if pgrep supervisord > /dev/null; then
+      log "${MODULE} Stopping n8n service for consistent backup..."
+      supervisorctl stop n8n
+      N8N_WAS_RUNNING=true
     else
-      log "$ERR_PREFIX No n8n data directory found at $N8N_DATA_DIR"
+      log "${MODULE} Supervisord not running, proceeding with backup..."
+      N8N_WAS_RUNNING=false
+    fi
+    
+    if [ ! -d "$BACKUP_SOURCE_DIR" ]; then
+      log "$ERR_PREFIX No n8n data directory found at $BACKUP_SOURCE_DIR"
+    else
+      log "${MODULE} Data will be backed up from: $BACKUP_SOURCE_DIR"
+      log "${MODULE} Backup includes: database.sqlite, workflows, credentials, license, and all n8n data"
+    fi
+    
+    # Restart n8n service if it was running
+    if [ "$N8N_WAS_RUNNING" = true ]; then
+      log "${MODULE} Restarting n8n service..."
+      supervisorctl start n8n
     fi
     ;;
 

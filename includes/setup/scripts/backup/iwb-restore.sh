@@ -148,11 +148,51 @@ case "$DATASET" in
   n8n)
     MODULE="RESTORE N8N"
     log "Restoring n8n data directory..."
+    
+    # Check if supervisord is running and stop n8n for safe restore
+    if pgrep supervisord > /dev/null; then
+      log "${MODULE} Stopping n8n service for safe restore..."
+      supervisorctl stop n8n
+      N8N_WAS_RUNNING=true
+    else
+      log "${MODULE} Supervisord not running, proceeding with restore..."
+      N8N_WAS_RUNNING=false
+    fi
+    
+    # Ensure the n8n data directory exists
     mkdir -p /var/www/html/n8n
+    
+    # Extract archive contents directly to the n8n data directory
+    # (following the same pattern as mail, ssl, etc.)
     tar -xzf "$ARCHIVE_PATH" -C /var/www/html/n8n
-    # Set proper ownership for n8n user
+    
+    # Set proper ownership for n8n user (critical for database access)
     chown -R n8n:n8n /var/www/html/n8n
-    log "Set ownership of n8n data to n8n:n8n"
+    
+    # Set appropriate permissions for data directory
+    chmod 755 /var/www/html/n8n
+    find /var/www/html/n8n -type f -exec chmod 644 {} \;
+    find /var/www/html/n8n -type d -exec chmod 755 {} \;
+    
+    # Ensure the symlink exists at /home/n8n/.n8n -> /var/www/html/n8n
+    mkdir -p /home/n8n
+    chown n8n:n8n /home/n8n
+    
+    if [ ! -L "/home/n8n/.n8n" ]; then
+      ln -sf /var/www/html/n8n /home/n8n/.n8n
+      chown -h n8n:n8n /home/n8n/.n8n
+      log "${MODULE} Created symlink: /home/n8n/.n8n -> /var/www/html/n8n"
+    fi
+    
+    log "${MODULE} Restored n8n data to: /var/www/html/n8n"
+    log "${MODULE} Restored: database.sqlite, workflows, credentials, license"
+    log "${MODULE} Set ownership to n8n:n8n and proper permissions"
+    
+    # Restart n8n service if it was running
+    if [ "$N8N_WAS_RUNNING" = true ]; then
+      log "${MODULE} Restarting n8n service..."
+      supervisorctl start n8n
+    fi
     ;;
 
   akash)
