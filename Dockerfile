@@ -13,7 +13,7 @@ RUN apk update && apk add --no-cache \
 
 # Python & build tools
 RUN apk add --no-cache \
-    python3 py3-pip py3-cryptography py3-setuptools py3-wheel \
+    python3 py3-pip py3-cryptography py3-setuptools py3-wheel py3-yaml py3-requests \
     gcc musl-dev libffi-dev openssl-dev
 
 # Mail stack: Postfix, Dovecot, Rspamd
@@ -94,10 +94,13 @@ RUN mkdir -p /var/www/html/n8n /home/n8n && \
     chmod 700 /var/www/html/n8n
 
 # Configure sudo for n8n user to run only provider-services as root
-RUN echo "n8n ALL=(root) NOPASSWD: /usr/local/bin/provider-services" > /etc/sudoers.d/n8n && \
-    chmod 440 /etc/sudoers.d/n8n && \
-    touch /var/log/n8n-commands.log && \
-    chown n8n:n8n /var/log/n8n-commands.log
+# not sure this is actually needed? 
+# Not sure I am using these wrapper scripts or not
+# Commenting out to see if it breaks
+#RUN echo "n8n ALL=(root) NOPASSWD: /usr/local/bin/provider-services" > /etc/sudoers.d/n8n && \
+#    chmod 440 /etc/sudoers.d/n8n && \
+#    touch /var/log/n8n-commands.log && \
+#    chown n8n:n8n /var/log/n8n-commands.log
 
 
 # Ensure correct vmail user and group
@@ -128,10 +131,13 @@ COPY includes/ .
 
 # Configure scripts and permissions
 RUN chmod -R +x /var/setup/scripts && \
+    chmod -R +x /var/apps && \
+    ln -s /var/apps/iwb-akash-deploy/iwb-akash-deploy.py /usr/local/bin/iwb-akash-deploy && \
     ln -s /var/setup/scripts/n8n-command-wrapper.sh /usr/local/bin/n8n-cmd && \
+    chown n8n:n8n /usr/local/bin/iwb-akash-deploy && \
     chown root:root /usr/local/bin/n8n-cmd 
 
-# Expose standard mail ports
+# Expose ports
 EXPOSE 25 587 993 143 110 4190 5678
 
 # Use bash shell

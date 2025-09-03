@@ -32,10 +32,8 @@ AKASH_WALLET_NAME = os.getenv('COMPOSE_PROJECT_NAME', 'iwb') + 'akashwallet'
 AKASH_KEYRING_BACKEND = 'test'
 AKASH_NODE = 'https://rpc.akashnet.net:443'
 AKASH_CHAIN_ID = 'akashnet-2'
-AKASH_WALLET_RESTORE_SCRIPT = '/var/setup/scripts/akash-wallet-restore.sh'
 
 # ComfyUI deployment configuration
-COMFYUI_IMAGE = 'ghcr.io/yownas/comfyui:main'
 COMFYUI_PORT = 8188
 DEPLOYMENT_MINUTES = 60  # Minimum deployment time in minutes
 ESTIMATED_COST_PER_HOUR = 0.5  # Estimated AKT per hour for GPU deployment
@@ -44,6 +42,7 @@ class AkashDeployer:
     def __init__(self):
         self.logger = self._setup_logging()
         self.wallet_address = None
+        self.wallet_mnemonic = None  # Store mnemonic when available from backup
         self.balance_uakt = 0
         self.custom_manifest: Optional[str] = None
 
@@ -77,53 +76,55 @@ class AkashDeployer:
         """Restore Akash wallet from Storj backup"""
         self.logger.info("Restoring Akash wallet from Storj...")
 
-        # Check if wallet restore script exists (for local testing)
-        if not os.path.exists(AKASH_WALLET_RESTORE_SCRIPT):
-            self.logger.error(f"Wallet restore script not found: {AKASH_WALLET_RESTORE_SCRIPT}")
-            return False
-
-        # First check if wallet already exists
-        stdout, stderr, returncode = self.run_command([
-            AKASH_WALLET_RESTORE_SCRIPT, 'info'
-        ], timeout=30)
-
-        if returncode == 0:
-            try:
-                result = json.loads(stdout)
-                if result.get('status') == 'active':
-                    self.wallet_address = result.get('address')
-                    self.balance_uakt = int(result.get('balance_uakt', 0))
-                    self.logger.info(f"Wallet already exists: {self.wallet_address}")
-                    return True
-            except json.JSONDecodeError:
-                pass
+        # First check if wallet already exists in keyring
+        if self._check_wallet_exists():
+            self.logger.info(f"Wallet already exists: {self.wallet_address}")
+            return True
 
         # If wallet doesn't exist, try direct restoration approach
         self.logger.info("Wallet not found in keyring, attempting direct restore...")
         
-        # Try calling the restoration functionality directly, bypassing the wrapper script
-        # This is a more robust approach that doesn't depend on the full setup-env.sh
+        # Try calling the restoration functionality directly
         success = self._restore_wallet_direct()
         
         if success:
             # Verify the wallet was restored by checking again
-            stdout, stderr, returncode = self.run_command([
-                AKASH_WALLET_RESTORE_SCRIPT, 'info'
-            ], timeout=30)
-            
-            if returncode == 0:
-                try:
-                    result = json.loads(stdout)
-                    if result.get('status') == 'active':
-                        self.wallet_address = result.get('address')
-                        self.balance_uakt = int(result.get('balance_uakt', 0))
-                        self.logger.info(f"Wallet restored: {self.wallet_address}")
-                        return True
-                except json.JSONDecodeError:
-                    pass
+            if self._check_wallet_exists():
+                self.logger.info(f"Wallet restored: {self.wallet_address}")
+                return True
         
         self.logger.error("Failed to restore wallet using direct approach")
         return False
+
+    def _check_wallet_exists(self) -> bool:
+        """Check if wallet exists in keyring and get its details"""
+        try:
+            # List keys to see if wallet exists
+            cmd = [
+                'provider-services', 'keys', 'list',
+                '--keyring-backend', AKASH_KEYRING_BACKEND,
+                '--output', 'json'
+            ]
+            
+            stdout, stderr, returncode = self.run_command(cmd, timeout=30)
+            
+            if returncode == 0:
+                try:
+                    keys_data = json.loads(stdout)
+                    for key in keys_data:
+                        if key.get('name') == AKASH_WALLET_NAME:
+                            self.wallet_address = key.get('address')
+                            # Get balance
+                            self.balance_uakt = self.get_wallet_balance()
+                            return True
+                except json.JSONDecodeError:
+                    pass
+                    
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"Error checking wallet existence: {e}")
+            return False
 
     def _restore_wallet_direct(self) -> bool:
         """Direct wallet restoration bypassing setup-env.sh dependencies"""
@@ -189,6 +190,10 @@ class AkashDeployer:
                 self.logger.error("Invalid wallet backup data")
                 return False
             
+            # Store the mnemonic for future unified backups
+            self.wallet_mnemonic = mnemonic
+            self.logger.info("Mnemonic captured from backup for future use")
+            
             # Restore wallet using provider-services
             self.logger.info(f"Restoring wallet to keyring: {wallet_name}")
             
@@ -203,6 +208,16 @@ class AkashDeployer:
                 self.logger.error(f"Failed to restore wallet to keyring: {stderr}")
                 return False
             
+            # Get the wallet address for certificate operations
+            self.wallet_address = wallet_data.get('address')
+            if not self.wallet_address:
+                # If not in backup, query from keyring
+                self._update_wallet_address_from_keyring()
+            
+            # Restore certificates if they exist in the backup
+            # Certificate should be named as walletaddress.pem and included in the same backup
+            self._restore_certificates_from_backup(extract_dir, project_name)
+            
             # Cleanup temp files
             self.run_command(['rm', '-rf', temp_dir], timeout=10)
             
@@ -211,6 +226,446 @@ class AkashDeployer:
             
         except Exception as e:
             self.logger.error(f"Direct wallet restoration failed: {e}")
+            return False
+
+    def _update_wallet_address_from_keyring(self) -> bool:
+        """Get wallet address from keyring when not available in backup"""
+        try:
+            cmd = [
+                'provider-services', 'keys', 'show', AKASH_WALLET_NAME,
+                '--keyring-backend', AKASH_KEYRING_BACKEND,
+                '--address'
+            ]
+            
+            stdout, stderr, returncode = self.run_command(cmd, timeout=30)
+            
+            if returncode == 0:
+                self.wallet_address = stdout.strip()
+                self.logger.info(f"Retrieved wallet address from keyring: {self.wallet_address}")
+                return True
+            else:
+                self.logger.error(f"Failed to get wallet address from keyring: {stderr}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error getting wallet address from keyring: {e}")
+            return False
+
+    def _restore_certificates_from_backup(self, extract_dir: str, project_name: str) -> bool:
+        """Restore Akash certificates from backup if available"""
+        try:
+            # Certificate is named after the wallet address
+            if not self.wallet_address:
+                self.logger.error("Cannot restore certificate without wallet address")
+                return False
+                
+            cert_filename = f"{self.wallet_address}.pem"
+            cert_file = f"{extract_dir}/{cert_filename}"
+            
+            if os.path.exists(cert_file):
+                # Create certificate directory (Akash stores certs in ~/.akash)
+                cert_dir = os.path.expanduser("~/.akash")
+                os.makedirs(cert_dir, exist_ok=True)
+                
+                # Copy certificate with proper naming
+                import shutil
+                dest_cert = f"{cert_dir}/{cert_filename}"
+                shutil.copy2(cert_file, dest_cert)
+                
+                # Set proper permissions
+                os.chmod(dest_cert, 0o600)
+                
+                self.logger.info(f"Akash certificate restored: {cert_filename}")
+                return True
+            else:
+                self.logger.warning(f"No certificate found in backup: {cert_filename}")
+                return self._generate_akash_certificate()
+                
+        except Exception as e:
+            self.logger.error(f"Failed to restore certificate: {e}")
+            return self._generate_akash_certificate()
+
+    def _generate_akash_certificate(self) -> bool:
+        """Generate and publish Akash certificate (handles both new generation and existing cert publication)"""
+        try:
+            if not self.wallet_address:
+                self.logger.error("Cannot generate certificate without wallet address")
+                return False
+            
+            # Create certificate directory
+            cert_dir = os.path.expanduser("~/.akash")
+            os.makedirs(cert_dir, exist_ok=True)
+            cert_filename = f"{self.wallet_address}.pem"
+            cert_path = f"{cert_dir}/{cert_filename}"
+            
+            # Check if certificate already exists locally
+            cert_exists_locally = os.path.exists(cert_path)
+            
+            if cert_exists_locally:
+                self.logger.info("Certificate exists locally - checking blockchain publication...")
+                # Check if already published on blockchain
+                if self._check_certificate_published():
+                    self.logger.info("Certificate already published on blockchain - all good!")
+                    return True
+                else:
+                    self.logger.info("Certificate not published - publishing to blockchain...")
+                    return self._publish_existing_certificate()
+            
+            # Certificate doesn't exist locally - need to generate it
+            self.logger.info("Generating new Akash certificate...")
+            
+            # Step 1: Generate certificate locally using provider-services
+            cmd_generate = [
+                'provider-services', 'tx', 'cert', 'generate', 'client',
+                '--from', AKASH_WALLET_NAME,
+                '--node', AKASH_NODE,
+                '--chain-id', AKASH_CHAIN_ID,
+                '--keyring-backend', AKASH_KEYRING_BACKEND,
+                '--gas', 'auto',
+                '--gas-adjustment', '1.5',
+                '--yes'
+            ]
+            
+            stdout, stderr, returncode = self.run_command(cmd_generate, timeout=60)
+            
+            if returncode != 0:
+                self.logger.error(f"Certificate generation failed: {stderr}")
+                # Check for overwrite error - this is okay, proceed to publish
+                if 'cannot overwrite certificate' in stderr.lower():
+                    self.logger.info("Certificate already exists locally - proceeding to publish step")
+                else:
+                    self.logger.error("Certificate generation failed for unknown reason")
+                    return False
+                    return False
+            
+            # Step 2: Publish certificate to blockchain
+            self.logger.info("Publishing certificate to Akash blockchain...") # This requires AKT to pay for the transaction
+            if not self._publish_existing_certificate():
+                return False
+            
+            # Verify the certificate file exists locally
+            if os.path.exists(cert_path):
+                self.logger.info(f"Akash certificate ready: {cert_filename}")
+                
+                # After successful certificate generation + publication, create a unified backup
+                # This is critical because we now have both wallet + certificate
+                self._create_unified_backup()
+                return True
+            else:
+                self.logger.error(f"Certificate file not found after generation: {cert_path}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Certificate generation failed: {e}")
+            return False
+
+    def _create_unified_backup(self) -> bool:
+        """Create unified backup containing both wallet mnemonic and certificate"""
+        try:
+            if not self.wallet_address:
+                self.logger.error("Cannot create backup without wallet address")
+                return False
+            
+            self.logger.info("Creating unified Akash backup (wallet + certificate)...")
+            
+            # Get wallet mnemonic (should always be available from container startup)
+            mnemonic = self._extract_wallet_mnemonic()
+            if not mnemonic:
+                self.logger.error("Cannot create backup without mnemonic")
+                return False
+            
+            # Prepare backup data
+            storj_bucket = os.getenv('IWB_STORJ_WPOPS_BUCKET')
+            domain = os.getenv('IWB_DOMAIN')
+            project_name = os.getenv('COMPOSE_PROJECT_NAME', 'iwb')
+            
+            if not storj_bucket or not domain:
+                self.logger.error("Missing Storj configuration for backup")
+                return False
+            
+            # Create temporary backup directory
+            temp_dir = "/tmp/iwb-akash-backup"
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            try:
+                # 1. Create wallet backup JSON
+                backup_file = f"{temp_dir}/{project_name}_akash-deploy-backup.json"
+                wallet_data = {
+                    "walletName": AKASH_WALLET_NAME,
+                    "mnemonic": mnemonic,
+                    "address": self.wallet_address,
+                    "createdAt": datetime.utcnow().isoformat() + "Z",
+                    "network": "akash",
+                    "chainId": AKASH_CHAIN_ID
+                }
+                
+                with open(backup_file, 'w') as f:
+                    json.dump(wallet_data, f, indent=2)
+                
+                # 2. Copy certificate if it exists
+                cert_dir = os.path.expanduser("~/.akash")
+                cert_filename = f"{self.wallet_address}.pem"
+                cert_source = f"{cert_dir}/{cert_filename}"
+                
+                if os.path.exists(cert_source):
+                    cert_dest = f"{temp_dir}/{cert_filename}"
+                    import shutil
+                    shutil.copy2(cert_source, cert_dest)
+                    self.logger.info(f"Certificate included in backup: {cert_filename}")
+                else:
+                    self.logger.warning(f"Certificate not found for backup: {cert_source}")
+                
+                # 3. Create tar.gz archive (same format as existing backup system)
+                archive_name = f"{domain}_akash_latest.tar.gz"
+                archive_path = f"/tmp/{archive_name}"
+                
+                stdout, stderr, returncode = self.run_command([
+                    'tar', '-czf', archive_path, '-C', temp_dir, '.'
+                ], timeout=30)
+                
+                if returncode != 0:
+                    self.logger.error(f"Failed to create backup archive: {stderr}")
+                    return False
+                
+                # 4. Upload to Storj
+                storj_path = f"sj://{storj_bucket}/IWBDPP/akash/latest/{archive_name}"
+                stdout, stderr, returncode = self.run_command([
+                    'uplink', 'cp', archive_path, storj_path
+                ], timeout=60)
+                
+                if returncode == 0:
+                    self.logger.info(f"Unified Akash backup uploaded successfully: {storj_path}")
+                    success = True
+                else:
+                    self.logger.error(f"Failed to upload backup to Storj: {stderr}")
+                    success = False
+                
+                # 5. Cleanup temp files
+                self.run_command(['rm', '-rf', temp_dir], timeout=10)
+                self.run_command(['rm', '-f', archive_path], timeout=10)
+                
+                return success
+                
+            except Exception as e:
+                # Cleanup on error
+                self.run_command(['rm', '-rf', temp_dir], timeout=10)
+                raise e
+                
+        except Exception as e:
+            self.logger.error(f"Unified backup creation failed: {e}")
+            return False
+
+    def _extract_wallet_mnemonic(self) -> str:
+        """Get wallet mnemonic for backup purposes"""
+        if self.wallet_mnemonic:
+            return self.wallet_mnemonic
+        
+        # This should not happen if container startup worked correctly
+        self.logger.error("No mnemonic available - this indicates a container startup issue")
+        return ""
+
+    def _load_mnemonic_from_backup(self) -> bool:
+        """Load mnemonic from existing backup if wallet already in keyring"""
+        try:
+            storj_bucket = os.getenv('IWB_STORJ_WPOPS_BUCKET')
+            domain = os.getenv('IWB_DOMAIN')
+            project_name = os.getenv('COMPOSE_PROJECT_NAME', 'iwb')
+            
+            if not storj_bucket or not domain:
+                self.logger.warning("Cannot load mnemonic - missing Storj configuration")
+                return False
+            
+            # Download and extract backup to get mnemonic
+            backup_filename = f"{domain}_akash_latest.tar.gz"
+            storj_path = f"sj://{storj_bucket}/IWBDPP/akash/latest/{backup_filename}"
+            temp_dir = "/tmp/iwb-mnemonic-load"
+            backup_file = f"{temp_dir}/{backup_filename}"
+            
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # Download backup
+            stdout, stderr, returncode = self.run_command([
+                'uplink', 'cp', storj_path, backup_file
+            ], timeout=30)
+            
+            if returncode != 0:
+                self.logger.warning(f"Could not download backup for mnemonic: {stderr}")
+                return False
+            
+            # Extract and read mnemonic
+            extract_dir = f"{temp_dir}/extracted"
+            os.makedirs(extract_dir, exist_ok=True)
+            
+            self.run_command(['tar', '-xzf', backup_file, '-C', extract_dir], timeout=10)
+            
+            wallet_backup_file = f"{extract_dir}/{project_name}_akash-deploy-backup.json"
+            if os.path.exists(wallet_backup_file):
+                with open(wallet_backup_file, 'r') as f:
+                    wallet_data = json.load(f)
+                    mnemonic = wallet_data.get('mnemonic', '')
+                    if mnemonic:
+                        self.wallet_mnemonic = mnemonic
+                        self.logger.info("Mnemonic loaded from existing backup")
+                        
+            # Cleanup
+            self.run_command(['rm', '-rf', temp_dir], timeout=10)
+            return True
+            
+        except Exception as e:
+            self.logger.warning(f"Could not load mnemonic from backup: {e}")
+            return False
+
+    def setup_wallet(self) -> bool:
+        """Setup wallet - restore from existing backup (wallet + mnemonic always exist)"""
+        try:
+            # First check if we already have a wallet in keyring
+            if self._check_wallet_exists():
+                self.logger.info(f"Using existing wallet: {AKASH_WALLET_NAME}")
+                # We still need the mnemonic for unified backups, so try to get it from backup
+                self._load_mnemonic_from_backup()
+            else:
+                # Restore from backup (wallet + mnemonic created at container startup)
+                if not self.restore_wallet():
+                    self.logger.error("No wallet found and backup restoration failed")
+                    self.logger.error("Wallet should have been created at container startup")
+                    return False
+                self.logger.info("Wallet restored from backup")
+            
+            # Now check certificate - generate/publish if needed
+            if not self._check_certificate_exists():
+                self.logger.info("No certificate found - attempting to generate and publish one")
+                
+                # Try to generate certificate 
+                if not self._generate_akash_certificate():
+                    self.logger.error("Certificate generation failed")
+                    return False
+                
+                self.logger.info("Certificate generated and published successfully")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Wallet setup failed: {e}")
+            return False
+
+    def _check_certificate_exists(self) -> bool:
+        """Check if Akash certificate exists for current wallet"""
+        if not self.wallet_address:
+            self.logger.error("Cannot check certificate without wallet address")
+            return False
+            
+        cert_dir = os.path.expanduser("~/.akash")
+        cert_filename = f"{self.wallet_address}.pem"
+        cert_path = f"{cert_dir}/{cert_filename}"
+        
+        exists = os.path.exists(cert_path)
+        if exists:
+            self.logger.info(f"Found existing certificate: {cert_filename}")
+        else:
+            self.logger.info(f"No certificate found for wallet: {self.wallet_address}")
+            
+        return exists
+
+    def _check_certificate_published(self) -> bool:
+        """Check if certificate is published on Akash blockchain"""
+        try:
+            if not self.wallet_address:
+                return False
+                
+            self.logger.info("Checking if certificate is published on blockchain...")
+            
+            # Query certificate from blockchain
+            cmd = [
+                'provider-services', 'query', 'cert', 'list',
+                '--owner', self.wallet_address,
+                '--node', AKASH_NODE,
+                '--chain-id', AKASH_CHAIN_ID,
+                '--output', 'json'
+            ]
+            
+            stdout, stderr, returncode = self.run_command(cmd, timeout=30)
+            
+            if returncode != 0:
+                self.logger.warning(f"Failed to query certificate from blockchain: {stderr}")
+                return False
+            
+            try:
+                data = json.loads(stdout)
+                certificates = data.get('certificates', [])
+                
+                if certificates:
+                    self.logger.info(f"Found {len(certificates)} certificate(s) published on blockchain")
+                    return True
+                else:
+                    self.logger.info("No certificates found on blockchain for this wallet")
+                    return False
+                    
+            except json.JSONDecodeError:
+                self.logger.warning(f"Invalid JSON response from certificate query: {stdout}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error checking certificate publication: {e}")
+            return False
+
+    def _publish_existing_certificate(self) -> bool:
+        """Publish existing local certificate to blockchain"""
+        try:
+            if not self.wallet_address:
+                self.logger.error("Cannot publish certificate without wallet address")
+                return False
+                
+            self.logger.info("Publishing existing certificate to Akash blockchain...")
+            
+            cmd_publish = [
+                'provider-services', 'tx', 'cert', 'publish', 'client',
+                '--from', AKASH_WALLET_NAME,
+                '--node', AKASH_NODE,
+                '--chain-id', AKASH_CHAIN_ID,
+                '--keyring-backend', AKASH_KEYRING_BACKEND,
+                '--gas', 'auto',
+                '--gas-adjustment', '1.5',
+                '--yes'
+            ]
+            
+            stdout, stderr, returncode = self.run_command(cmd_publish, timeout=60)
+            
+            if returncode != 0:
+                self.logger.error(f"Certificate publication failed: {stderr}")
+                # Check if already published
+                if 'certificate exists' in stderr.lower() or 'already exists' in stderr.lower():
+                    self.logger.info("Certificate already published to blockchain - this is fine")
+                    return True
+                elif 'insufficient' in stderr.lower():
+                    self.logger.error("Certificate publication failed due to insufficient AKT balance")
+                    self.logger.error("Fund the wallet with AKT and try again")
+                    return False
+                else:
+                    return False
+            else:
+                self.logger.info("Certificate successfully published to blockchain")
+                return True
+                
+        except Exception as e:
+            self.logger.error(f"Failed to publish certificate: {e}")
+            return False
+
+    def _backup_certificate_to_storj(self, cert_path: str, cert_filename: str) -> bool:
+        """Back up the certificate to Storj as part of the unified Akash backup"""
+        try:
+            # The certificate should be backed up along with the wallet in the existing
+            # iwb-backup.sh akash snapshot process. For now, we'll document this need.
+            self.logger.info("Certificate should be included in next 'iwb-backup.sh akash snapshot'")
+            self.logger.info(f"Certificate location: {cert_path}")
+            
+            # TODO: Integrate with the unified backup system 
+            # The certificate needs to be included in the tar.gz backup that also
+            # contains the {project_name}_akash-deploy-backup.json file
+            
+            return True
+                
+        except Exception as e:
+            self.logger.error(f"Certificate backup failed: {e}")
             return False
 
     def get_wallet_balance(self) -> int:
@@ -253,7 +708,7 @@ class AkashDeployer:
             'estimated_cost_akt': akt_needed,
             'current_balance_uakt': self.balance_uakt,
             'current_balance_akt': current_balance_akt,
-            'sufficient_funds': self.balance_uakt >= uakt_needed,
+            'sufficient_akt': self.balance_uakt >= uakt_needed,
             'estimated_runtime_hours': duration_hours
         }
 
@@ -272,7 +727,7 @@ class AkashDeployer:
         return {
             'min_deployment': min_costs,
             'with_buffer': buffer_costs,
-            'can_deploy': buffer_costs['sufficient_funds']
+            'can_deploy': buffer_costs['sufficient_akt']
         }
 
     def create_deployment_manifest(self, api_credentials: Optional[Dict] = None, custom_yaml: Optional[str] = None) -> str:
@@ -311,6 +766,12 @@ class AkashDeployer:
     def deploy_to_akash(self) -> Optional[Dict]:
         """Deploy ComfyUI to Akash Network with complete workflow"""
         self.logger.info("Starting Akash deployment...")
+
+        # Certificate should already be handled by setup_wallet() from run()
+        # But double-check in case this method is called directly
+        if not self._check_certificate_exists():
+            self.logger.error("No certificate found - this should have been handled by setup_wallet()")
+            return None
 
         # Create deployment manifest
         # Generate API credentials first to inject into manifest
@@ -375,7 +836,18 @@ class AkashDeployer:
                 self.logger.error("Failed to create lease")
                 return None
 
-            # Step 5: Wait for deployment to be active and get service URL
+            # Store provider in deployment_info for later use
+            deployment_info['provider'] = lease_info['provider']
+
+            # Step 5: Send manifest to provider
+            self.logger.info("Sending manifest to provider...")
+            manifest_sent = self._send_manifest_to_provider(deployment_info, lease_info, manifest_path)
+            
+            if not manifest_sent:
+                self.logger.error("Failed to send manifest to provider")
+                return None
+
+            # Step 6: Wait for deployment to be active and get service URL
             self.logger.info("Waiting for deployment to become active...")
             deployment_status = self._wait_for_deployment_ready(deployment_info)
 
@@ -435,39 +907,6 @@ class AkashDeployer:
         self.logger.warning(f"Could not parse dseq from output: {output}")
         return None
 
-    def _wait_for_lease(self, deployment_info: Dict, timeout: int = 300) -> Optional[Dict]:
-        """Wait for deployment lease to become active"""
-        start_time = time.time()
-
-        while time.time() - start_time < timeout:
-            # Query leases
-            cmd = [
-                'provider-services', 'query', 'deployment', 'leases',
-                deployment_info['dseq'],
-                '--owner', deployment_info['owner'],
-                '--node', AKASH_NODE,
-                '--output', 'json'
-            ]
-
-            stdout, stderr, returncode = self.run_command(cmd, timeout=30)
-
-            if returncode == 0:
-                try:
-                    data = json.loads(stdout)
-                    leases = data.get('leases', [])
-
-                    if leases:
-                        lease = leases[0]
-                        if lease.get('state') == 'active':
-                            return lease
-
-                except json.JSONDecodeError:
-                    pass
-
-            time.sleep(10)
-
-        return None
-
     def _wait_for_bids(self, deployment_info: Dict, timeout: int = 300) -> Optional[list]:
         """Wait for bids to be received for the deployment"""
         start_time = time.time()
@@ -509,29 +948,46 @@ class AkashDeployer:
         # Filter for US-based providers (trustworthy ones)
         us_providers = []
         trusted_providers = [
-            'akash1provider',  # Add known trustworthy providers here
-            'akash1trusted',
-            # Add more as discovered
+            'akash1365yvmc4s7awdyj3n2sav7xfx76adc6dnmlx63',  # Known good provider
+            'akash18qa2a2ltfyvkyj0ggj3hkvuj6twzyumuaru9s4',  # Another known provider
         ]
 
         for bid in bids:
-            provider = bid.get('bid', {}).get('bid_id', {}).get('provider', '')
+            bid_data = bid.get('bid', {})
+            bid_id = bid_data.get('bid_id', {})
+            provider = bid_id.get('provider', '')
 
-            # Check if provider is in US region (this is a simplified check)
-            # In practice, you'd query provider attributes
-            if any(trusted in provider.lower() for trusted in ['us', 'united', 'america']) or \
-               provider in trusted_providers:
+            # Check if provider is trusted or appears to be US-based
+            is_trusted = provider in trusted_providers
+            
+            # Simple heuristic check for US providers (this is basic and should be improved)
+            is_likely_us = any(indicator in provider.lower() for indicator in ['us', 'america', 'usa'])
+            
+            if is_trusted or is_likely_us:
                 us_providers.append(bid)
 
         if not us_providers:
-            # If no US providers, use any available
+            # If no US providers, use any available but log a warning
+            self.logger.warning("No US or trusted providers found, selecting from all available bids")
             us_providers = bids
 
-        # Sort by price (lowest first)
-        us_providers.sort(key=lambda x: float(x.get('bid', {}).get('price', {}).get('amount', '0')))
+        # Sort by price (lowest first) - need to handle the nested structure properly
+        def get_bid_amount(bid):
+            try:
+                return float(bid.get('bid', {}).get('price', {}).get('amount', '999999999'))
+            except (ValueError, TypeError):
+                return 999999999  # Put invalid bids at the end
+
+        us_providers.sort(key=get_bid_amount)
 
         # Return the cheapest option
-        return us_providers[0] if us_providers else None
+        selected = us_providers[0] if us_providers else None
+        if selected:
+            price = selected.get('bid', {}).get('price', {}).get('amount', 'unknown')
+            provider = selected.get('bid', {}).get('bid_id', {}).get('provider', 'unknown')
+            self.logger.info(f"Selected provider {provider[:20]}... with price {price} uakt")
+        
+        return selected
 
     def _create_lease(self, deployment_info: Dict, bid: Dict) -> Optional[Dict]:
         """Create a lease by accepting the selected bid"""
@@ -571,17 +1027,48 @@ class AkashDeployer:
             'status': 'created'
         }
 
+    def _send_manifest_to_provider(self, deployment_info: Dict, lease_info: Dict, manifest_path: str) -> bool:
+        """Send the deployment manifest to the selected provider"""
+        try:
+            cmd = [
+                'provider-services', 'send-manifest',
+                manifest_path,
+                '--dseq', deployment_info['dseq'],
+                '--provider', lease_info['provider'],
+                '--from', AKASH_WALLET_NAME,
+                '--node', AKASH_NODE,
+                '--chain-id', AKASH_CHAIN_ID,
+                '--keyring-backend', AKASH_KEYRING_BACKEND,
+                '--gas', 'auto',
+                '--gas-adjustment', '1.5',
+                '--yes'
+            ]
+
+            stdout, stderr, returncode = self.run_command(cmd, timeout=120)
+
+            if returncode != 0:
+                self.logger.error(f"Failed to send manifest: {stderr}")
+                return False
+
+            self.logger.info("Manifest sent to provider successfully")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Error sending manifest to provider: {e}")
+            return False
+
     def _wait_for_deployment_ready(self, deployment_info: Dict, timeout: int = 600) -> Optional[Dict]:
         """Wait for deployment to be ready and get service information"""
         start_time = time.time()
         self.logger.info("Waiting for deployment to be ready...")
 
         while time.time() - start_time < timeout:
-            # Query deployment status
+            # Query deployment status using lease-status command
             cmd = [
-                'provider-services', 'query', 'deployment', 'status',
-                deployment_info['dseq'],
-                '--owner', deployment_info['owner'],
+                'provider-services', 'lease-status',
+                '--dseq', deployment_info['dseq'],
+                '--from', AKASH_WALLET_NAME,
+                '--provider', deployment_info.get('provider', ''),
                 '--node', AKASH_NODE,
                 '--output', 'json'
             ]
@@ -595,11 +1082,32 @@ class AkashDeployer:
 
                     # Check if services are running
                     if services:
-                        service_info = services.get('comfyui', {})
-                        if service_info.get('available') == 1:
-                            self.logger.info("Deployment is ready!")
-                            return data
+                        # Look for any service that's available
+                        for service_name, service_info in services.items():
+                            if service_info.get('available') >= 1:
+                                self.logger.info(f"Deployment is ready! Service {service_name} available")
+                                return data
 
+                except json.JSONDecodeError as e:
+                    self.logger.debug(f"Failed to parse deployment status JSON: {e}")
+
+            # Also try the generic query approach as fallback
+            cmd_fallback = [
+                'provider-services', 'query', 'deployment', 'get',
+                '--dseq', deployment_info['dseq'],
+                '--owner', deployment_info['owner'],
+                '--node', AKASH_NODE,
+                '--output', 'json'
+            ]
+
+            stdout, stderr, returncode = self.run_command(cmd_fallback, timeout=30)
+            if returncode == 0:
+                try:
+                    data = json.loads(stdout)
+                    state = data.get('deployment', {}).get('state')
+                    if state == 'active':
+                        self.logger.info("Deployment is active!")
+                        return data
                 except json.JSONDecodeError:
                     pass
 
@@ -787,26 +1295,47 @@ class AkashDeployer:
             self.logger.error(f"Error sending email: {e}")
 
     def cleanup_wallet(self):
-        """Clean up wallet from keyring"""
-        self.logger.info("Cleaning up wallet from keyring...")
+        """Clean up wallet from keyring and certificates"""
+        self.logger.info("Cleaning up wallet from keyring and certificates...")
 
-        # Check if wallet restore script exists (for local testing)
-        if not os.path.exists(AKASH_WALLET_RESTORE_SCRIPT):
-            self.logger.warning(f"Wallet cleanup script not found: {AKASH_WALLET_RESTORE_SCRIPT}")
-            return
+        try:
+            # Clean up certificates first
+            self._cleanup_certificates()
+            
+            # Delete the wallet from keyring using provider-services
+            cmd = [
+                'provider-services', 'keys', 'delete', AKASH_WALLET_NAME,
+                '--keyring-backend', AKASH_KEYRING_BACKEND,
+                '--yes'
+            ]
+            
+            stdout, stderr, returncode = self.run_command(cmd, timeout=30)
 
-        stdout, stderr, returncode = self.run_command([
-            AKASH_WALLET_RESTORE_SCRIPT, 'cleanup'
-        ], timeout=30)
-
-        if returncode == 0:
-            try:
-                result = json.loads(stdout)
-                self.logger.info(f"Wallet cleanup: {result.get('message', 'Success')}")
-            except json.JSONDecodeError:
+            if returncode == 0:
                 self.logger.info("Wallet cleaned up successfully")
-        else:
-            self.logger.error(f"Failed to cleanup wallet: stdout='{stdout}', stderr='{stderr}', returncode={returncode}")
+            else:
+                # Check if the error is just that the key doesn't exist
+                if 'not found' in stderr.lower() or 'does not exist' in stderr.lower():
+                    self.logger.info("Wallet was not in keyring (already clean)")
+                else:
+                    self.logger.error(f"Failed to cleanup wallet: {stderr}")
+                    
+        except Exception as e:
+            self.logger.error(f"Error during wallet cleanup: {e}")
+
+    def _cleanup_certificates(self):
+        """Clean up Akash certificates"""
+        try:
+            if self.wallet_address:
+                cert_dir = os.path.expanduser("~/.akash")
+                cert_file = f"{cert_dir}/{self.wallet_address}.pem"
+                
+                if os.path.exists(cert_file):
+                    os.remove(cert_file)
+                    self.logger.info(f"Certificate cleaned up: {self.wallet_address}.pem")
+                
+        except Exception as e:
+            self.logger.error(f"Error cleaning up certificates: {e}")
 
     def run(self) -> Dict:
         """Main deployment workflow"""
@@ -818,19 +1347,19 @@ class AkashDeployer:
         }
 
         try:
-            # Step 1: Restore wallet
-            if not self.restore_wallet():
-                result['message'] = 'Failed to restore wallet'
+            # Step 1: Setup wallet (handles restore + certificate setup)
+            if not self.setup_wallet():
+                result['message'] = 'Failed to setup wallet'
                 return result
 
             # Step 2: Check deployment feasibility
             feasibility = self.check_deployment_feasibility()
 
             if not feasibility['can_deploy']:
-                result['message'] = f'Insufficient funds for deployment. Need {feasibility["with_buffer"]["estimated_cost_akt"]:.2f} AKT, have {feasibility["with_buffer"]["current_balance_akt"]:.2f} AKT'
+                result['message'] = f'Insufficient AKT for deployment. Need {feasibility["with_buffer"]["estimated_cost_akt"]:.2f} AKT, have {feasibility["with_buffer"]["current_balance_akt"]:.2f} AKT'
 
                 # Send notification email
-                subject = f'Akash Deployment Failed - Insufficient Funds ({os.getenv("IWB_DOMAIN", "localhost")})'
+                subject = f'Akash Deployment Failed - Insufficient AKT ({os.getenv("IWB_DOMAIN", "localhost")})'
                 body = f"""
 Insufficient AKT balance for ComfyUI deployment.
 
