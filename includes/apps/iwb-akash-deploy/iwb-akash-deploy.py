@@ -644,11 +644,110 @@ class AkashDeployer:
                     return False
             else:
                 self.logger.info("Certificate successfully published to blockchain")
+                
+                # Send certificate publication confirmation email
+                self._send_certificate_publication_email(stdout)
                 return True
                 
         except Exception as e:
             self.logger.error(f"Failed to publish certificate: {e}")
             return False
+
+    def _send_certificate_publication_email(self, tx_output: str) -> None:
+        """Send email notification when certificate is published to blockchain"""
+        try:
+            # Extract transaction hash from output
+            tx_hash = self._extract_transaction_hash(tx_output)
+            
+            # Get current balance for context
+            current_balance_akt = self.balance_uakt / 1000000
+            
+            # Get Storj backup path for certificate location
+            storj_bucket = os.getenv('IWB_STORJ_WPOPS_BUCKET', 'unknown-bucket')
+            domain = os.getenv('IWB_DOMAIN', 'localhost')
+            storj_backup_path = f"sj://{storj_bucket}/IWBDPP/akash/latest/{domain}_akash_latest.tar.gz"
+            
+            subject = f'Akash Certificate Published Successfully ({domain})'
+            body = f"""
+🎉 Akash Network Certificate Published Successfully!
+
+Your Akash certificate has been successfully published to the blockchain. This is a one-time setup that enables your wallet to deploy services on the Akash Network.
+
+Certificate Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Wallet Address: {self.wallet_address}
+• Wallet Name: {AKASH_WALLET_NAME}
+• Chain ID: {AKASH_CHAIN_ID}
+• Certificate Status: Published to Blockchain ✅
+• Certificate Backup: {storj_backup_path}
+• Certificate Filename: {self.wallet_address}.pem
+
+Transaction Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Transaction Hash: {tx_hash}
+• Network: Akash Network (akashnet-2)
+• Explorer: https://www.mintscan.io/akash/tx/{tx_hash}
+
+Wallet Status:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Current AKT Balance: {current_balance_akt:.6f} AKT
+• Ready for Deployments: Yes ✅
+
+Important Notes:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ This certificate is valid indefinitely and only needs to be published once
+✅ Your wallet can now create deployments on the Akash Network
+✅ Certificate + wallet backed up to Storj (permanent storage)
+⚠️  Local certificate files are ephemeral (restored from Storj only as needed)
+⚠️  Your wallet mnemonic is stored securely in your Storj encrypted storage for account recovery
+
+Storage Information:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Permanent Backup: Storj encrypted storage
+• Backup Contents: Wallet mnemonic + Certificate (.pem)
+• Restoration: Automatic on container startup
+
+Next Steps:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• You can now deploy ComfyUI instances to Akash
+• Ensure sufficient AKT balance for deployment operations
+• Monitor deployments through n8n workflows
+
+– IWB Digital Presence Platform
+System Timestamp: {datetime.utcnow().isoformat()}Z
+"""
+            
+            self.send_notification_email(subject, body)
+            self.logger.info("Certificate publication confirmation email sent")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to send certificate publication email: {e}")
+
+    def _extract_transaction_hash(self, tx_output: str) -> str:
+        """Extract transaction hash from provider-services output"""
+        try:
+            # Look for transaction hash in the output
+            # provider-services typically outputs JSON or includes txhash field
+            import re
+            
+            # Try to find txhash in JSON response
+            if 'txhash' in tx_output.lower():
+                # Look for txhash field in JSON or plain text
+                hash_match = re.search(r'"?txhash"?\s*:?\s*"?([A-Fa-f0-9]{64})"?', tx_output, re.IGNORECASE)
+                if hash_match:
+                    return hash_match.group(1)
+            
+            # Fallback: look for any 64-character hex string (typical transaction hash)
+            hash_match = re.search(r'\b([A-Fa-f0-9]{64})\b', tx_output)
+            if hash_match:
+                return hash_match.group(1)
+            
+            # If no hash found, return a truncated output for reference
+            return tx_output[:100] + "..." if len(tx_output) > 100 else tx_output
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to extract transaction hash: {e}")
+            return "Unable to extract transaction hash"
 
     def _backup_certificate_to_storj(self, cert_path: str, cert_filename: str) -> bool:
         """Back up the certificate to Storj as part of the unified Akash backup"""
