@@ -74,7 +74,7 @@ RUN cd /tmp && \
 
 # Install iwb-akash-deploy from GitHub repository
 RUN cd /tmp && \
-    wget https://raw.githubusercontent.com/innerwebblueprint/iwb-akash-deploy/main/iwb-akash-deploy.py -O iwb-akash-deploy && \
+    wget https://github.com/innerwebblueprint/iwb-akash-deploy/raw/refs/heads/master/iwb-akash-deploy.py -O iwb-akash-deploy && \
     mv iwb-akash-deploy /usr/local/bin/iwb-akash-deploy && \
     chmod +x /usr/local/bin/iwb-akash-deploy && \
     echo "✓ iwb-akash-deploy installed to /usr/local/bin"
@@ -132,13 +132,10 @@ RUN wget https://github.com/postfixadmin/postfixadmin/archive/refs/tags/postfixa
 WORKDIR /var
 
 # Placeholder configs and script
-ADD includes/includes.cache-buster /tmp/includes.cache-buster
 COPY includes/ .
 
 # Configure scripts and permissions
-RUN chmod -R +x /var/setup/scripts && \
-    chmod -R +x /var/apps &&
-
+RUN chmod -R +x /var/setup/scripts
 
 # Expose ports
 EXPOSE 25 587 993 143 110 4190 5678
