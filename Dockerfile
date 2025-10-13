@@ -72,6 +72,12 @@ RUN cd /tmp && \
     chmod +x /usr/local/bin/provider-services && \
     rm -rf ./bin
 
+# Install iwb-akash-deploy from GitHub repository
+RUN cd /tmp && \
+    wget https://raw.githubusercontent.com/innerwebblueprint/iwb-akash-deploy/main/iwb-akash-deploy.py -O iwb-akash-deploy && \
+    mv iwb-akash-deploy /usr/local/bin/iwb-akash-deploy && \
+    chmod +x /usr/local/bin/iwb-akash-deploy && \
+    echo "✓ iwb-akash-deploy installed to /usr/local/bin"
 
 # Install wp-cli and allow root usage
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
@@ -131,11 +137,8 @@ COPY includes/ .
 
 # Configure scripts and permissions
 RUN chmod -R +x /var/setup/scripts && \
-    chmod -R +x /var/apps && \
-    ln -s /var/apps/iwb-akash-deploy/iwb-akash-deploy.py /usr/local/bin/iwb-akash-deploy && \
-    ln -s /var/setup/scripts/n8n-command-wrapper.sh /usr/local/bin/n8n-cmd && \
-    chown n8n:n8n /usr/local/bin/iwb-akash-deploy && \
-    chown root:root /usr/local/bin/n8n-cmd 
+    chmod -R +x /var/apps &&
+
 
 # Expose ports
 EXPOSE 25 587 993 143 110 4190 5678
