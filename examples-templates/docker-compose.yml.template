@@ -1,0 +1,29 @@
+services:
+  iwbdpp:
+    # Replace with your preferred image tag (e.g., latest, dev-nightly, specific version)
+    image: iwbp/iwbdpp:latest
+
+    # Automatically restart unless manually stopped
+    restart: unless-stopped
+
+    # Load environment variables from .env file
+    env_file: .env
+
+    ports:
+      # Web interface (optional, used in full mode)
+      - "${PUBLIC_IP}:80:80" # HTTP
+      - "${PUBLIC_IP}:443:443" # HTTPS
+
+      # Mail transport ports
+      - "${PUBLIC_IP}:25:25" # SMTP (incoming mail)
+      - "${PUBLIC_IP}:587:587" # SMTP (submission)
+      - "${PUBLIC_IP}:993:993" # IMAPS
+      - "${PUBLIC_IP}:143:143" # IMAP (plain)
+      - "${PUBLIC_IP}:110:110" # POP3 (plain)
+      - "${PUBLIC_IP}:4190:4190" # ManageSieve
+
+    volumes:
+      - iwbdata:/var/
+
+volumes:
+  iwbdata:
