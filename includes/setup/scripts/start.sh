@@ -16,15 +16,15 @@ chmod +x /var/data/state/docker-env.sh
 
 mkdir -p /var/log/supervisord
 
-# Make iwb-backup.sh easily executable
-ln -s /var/setup/scripts/backup/iwb-backup.sh /usr/local/bin/iwb-backup.sh
-ln -s /var/setup/scripts/backup/iwb-restore.sh /usr/local/bin/iwb-restore.sh
+# Make iwb-backup.sh easily executable (use -f flag for restart safety)
+ln -sf /var/setup/scripts/backup/iwb-backup.sh /usr/local/bin/iwb-backup.sh
+ln -sf /var/setup/scripts/backup/iwb-restore.sh /usr/local/bin/iwb-restore.sh
 
 ## Log testing to test cron and debug
-ln -s /var/setup/scripts/backup/iwb-logtest.sh /usr/local/bin/iwb-logtest.sh
+ln -sf /var/setup/scripts/backup/iwb-logtest.sh /usr/local/bin/iwb-logtest.sh
 
 # Make Akash wallet restore script easily accessible
-ln -s /var/setup/scripts/akash-wallet-restore.sh /usr/local/bin/akash-wallet-restore
+ln -sf /var/setup/scripts/akash-wallet-restore.sh /usr/local/bin/akash-wallet-restore
 
 # Run setup based on IWB_MODE
 if [[ "$IWB_MODE" == "bare-bones-email-only" ]]; then
