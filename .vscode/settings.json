@@ -3,8 +3,8 @@
     ".stfolder": true,
     ".stignore": true,
     ".stversions": true,
+    ".venv": true,
     ".vscode": true,
-    "99_wordpress-plugin-local-repo/.stfolder": true
   },
   "workbench.colorTheme": "Zone Green",
   "markdownlint.config": {
