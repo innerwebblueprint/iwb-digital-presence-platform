@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install required packages
 # Core system utilities and setup tools
 RUN apk update && apk add --no-cache \
-    bash rsyslog curl nano coreutils iputils unzip wget supervisor cronie dnsmasq tree sudo jq bc netcat-openbsd
+    bash rsyslog curl nano coreutils iputils zip unzip wget supervisor cronie dnsmasq tree sudo jq bc netcat-openbsd
 
 # Python & build tools
 RUN apk add --no-cache \
@@ -95,6 +95,14 @@ RUN cd /tmp && \
     mv iwb-akash-deploy /usr/local/bin/iwb-akash-deploy && \
     chmod +x /usr/local/bin/iwb-akash-deploy && \
     echo "✓ iwb-akash-deploy installed to /usr/local/bin"
+
+# Install fonts for ASS subtitles
+RUN apk add --no-cache \
+    font-noto \
+    font-dejavu \
+    font-liberation \
+    ttf-liberation \
+    && fc-cache -f
 
 # Create n8n user and group
 RUN addgroup -g 9001 n8n && \
