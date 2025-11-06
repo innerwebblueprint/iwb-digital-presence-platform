@@ -365,7 +365,7 @@ if [ "$SKIP_GITHUB" = false ]; then
     step "Step $STEP_NUM: Pushing to GitHub"
     
     if [ "$FORCE" = false ]; then
-        read -p "$(echo -e ${YELLOW}Push to GitHub (both branches + tags)? [Y/n]${NC} )" -n 1 -r
+        read -p "$(echo -e ${YELLOW}'Push to GitHub (both branches + tags)? [Y/n]'${NC} )" -n 1 -r
         echo
         if [[ $REPLY =~ ^[Nn]$ ]]; then
             warn "GitHub push cancelled"

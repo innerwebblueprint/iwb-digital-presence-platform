@@ -262,7 +262,7 @@ if [ "$SKIP_DOCKER" = false ]; then
     echo ""
     
     if [ "$FORCE" = false ]; then
-        read -p "$(echo -e ${YELLOW}Proceed with Docker build? [Y/n]${NC} )" -n 1 -r
+        read -p "$(echo -e ${YELLOW}'Proceed with Docker build? [Y/n]'${NC} )" -n 1 -r
         echo
         if [[ $REPLY =~ ^[Nn]$ ]]; then
             warn "Docker build cancelled"
@@ -294,7 +294,7 @@ if [ "$SKIP_GITHUB" = false ]; then
     step "Step 5: Pushing to GitHub"
     
     if [ "$FORCE" = false ]; then
-        read -p "$(echo -e ${YELLOW}Push to GitHub (commits + tags)? [Y/n]${NC} )" -n 1 -r
+        read -p "$(echo -e ${YELLOW}'Push to GitHub (commits + tags)? [Y/n]'${NC} )" -n 1 -r
         echo
         if [[ $REPLY =~ ^[Nn]$ ]]; then
             warn "GitHub push cancelled"
