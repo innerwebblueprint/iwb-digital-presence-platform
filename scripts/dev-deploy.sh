@@ -313,7 +313,7 @@ fi
 # Success summary
 echo ""
 echo -e "${BOLD}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║              Deployment Complete! 🚀                   ║${NC}"
+echo -e "${BOLD}║              Deployment Complete!                      ║${NC}"
 echo -e "${BOLD}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 log "Version deployed: ${BOLD}$NEW_VERSION${NC}"
