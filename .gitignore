@@ -1,6 +1,4 @@
 .env
 reference/
 docker-compose.yml
-docker-command-reference.md
-workspace.sh
-docker-building-commands.md
+dev-notes/
