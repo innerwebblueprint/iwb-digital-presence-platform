@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.2] - 2025-11-06
+
 > **Commit Summary:** feat: automated commit workflow with changelog-driven messages
 
 ### Added
