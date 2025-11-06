@@ -261,6 +261,19 @@ if [ "$SKIP_DOCKER" = false ]; then
     echo "  - $DOCKER_REPO:dev-latest (always latest dev)"
     echo ""
     
+    # Ask about cache unless --no-cache flag was set or --force is used
+    if [ -z "$NO_CACHE" ] && [ "$FORCE" = false ]; then
+        read -p "$(echo -e ${YELLOW}'Use Docker cache? [Y/n]'${NC} )" -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            NO_CACHE="--no-cache"
+            info "Building without cache (full rebuild)"
+        else
+            info "Building with cache (faster)"
+        fi
+        echo ""
+    fi
+    
     if [ "$FORCE" = false ]; then
         read -p "$(echo -e ${YELLOW}'Proceed with Docker build? [Y/n]'${NC} )" -n 1 -r
         echo
