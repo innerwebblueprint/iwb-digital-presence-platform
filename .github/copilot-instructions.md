@@ -21,7 +21,13 @@ This project uses a **modular shell script architecture** where container startu
 - **State flags** in `/var/data/state/` prevent re-initialization on restarts:
   - `db_initialized`, `postfixadmin_configured`, `postfixadmin_schema_initialized`
   - Scripts check flags before running destructive operations
-- **Auto-generated passwords** persist to `/var/data/state/iwb_mysql_root_password.txt` if not in `.env`
+- **Auto-generated passwords** persist to `/var/data/state/` if not in `.env`:
+  - `iwb_mysql_root_password.txt` - MySQL root
+  - `iwb_postfixadmin_sql_password.txt` - PostfixAdmin database
+  - `iwb_wp_mysql_password.txt` - WordPress database
+  - `iwb_rspamd_controller_password.txt` - Rspamd web UI (normal)
+  - `iwb_rspamd_controller_enable_password.txt` - Rspamd web UI (enable/disable)
+  - View all: `/var/setup/scripts/show-passwords.sh`
 
 ### Module Pattern (Example: `postfixadmin-setup.sh`)
 ```bash
@@ -51,7 +57,7 @@ docker build -t iwbp/iwbdpp:dev-latest .
 docker push iwbp/iwbdpp:dev-latest
 
 # Deploy with docker-compose (copy templates from examples-templates/)
-cp examples-templates/env-template.env .env
+cp examples-templates/env.template .env
 cp examples-templates/docker-compose.yml.template docker-compose.yml
 # Edit .env with IWB_DOMAIN, IWB_MAIL_USER, IWB_STORJ_GRANT, etc.
 docker-compose up -d

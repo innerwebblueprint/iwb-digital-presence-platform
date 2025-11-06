@@ -111,17 +111,68 @@ fi
 # Change to project root
 cd "$PROJECT_ROOT"
 
-# Check for uncommitted changes
-if ! git diff-index --quiet HEAD --; then
-    error "You have uncommitted changes. Please commit or stash them first."
-fi
-
 # Get current branch
 CURRENT_BRANCH=$(git branch --show-current)
 
 # Check if we're on dev branch
 if [ "$CURRENT_BRANCH" != "dev" ]; then
     error "You must be on the 'dev' branch to create a release (currently on '$CURRENT_BRANCH')"
+fi
+
+# Check for uncommitted changes
+HAS_CHANGES=false
+if ! git diff-index --quiet HEAD --; then
+    HAS_CHANGES=true
+    warn "You have uncommitted changes:"
+    echo ""
+    git status --short
+    echo ""
+    
+    if [ "$FORCE" = false ]; then
+        read -p "$(echo -e ${YELLOW}Commit these changes before release? [Y/n]${NC} )" -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            error "Cannot proceed without committing changes. Please commit or stash them."
+        fi
+    fi
+    
+    # Extract commit message from CHANGELOG
+    echo ""
+    if [ -f "$CHANGELOG_FILE" ]; then
+        COMMIT_MSG=$(grep "^> \*\*Commit Summary:\*\*" "$CHANGELOG_FILE" | head -n1 | sed 's/^> \*\*Commit Summary:\*\* //')
+        
+        if [ -n "$COMMIT_MSG" ]; then
+            info "Auto-generated commit message from CHANGELOG:"
+            echo -e "  ${CYAN}$COMMIT_MSG${NC}"
+            echo ""
+            
+            if [ "$FORCE" = false ]; then
+                read -p "$(echo -e ${YELLOW}Use this message? [Y/n]${NC} )" -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Nn]$ ]]; then
+                    read -p "$(echo -e ${CYAN}Enter custom commit message:${NC} )" COMMIT_MSG
+                fi
+            fi
+        else
+            info "No commit summary found in CHANGELOG. Please enter manually."
+            info "Add this to CHANGELOG [Unreleased] section:"
+            echo '  > **Commit Summary:** feat: your message here'
+            echo ""
+            read -p "$(echo -e ${CYAN}Commit message:${NC} )" COMMIT_MSG
+        fi
+    else
+        read -p "$(echo -e ${CYAN}Commit message:${NC} )" COMMIT_MSG
+    fi
+    
+    if [ -z "$COMMIT_MSG" ]; then
+        error "Commit message cannot be empty"
+    fi
+    
+    # Add all changes and commit
+    git add -A
+    git commit -m "$COMMIT_MSG"
+    log "Changes committed: $COMMIT_MSG ✓"
+    echo ""
 fi
 
 # Check if VERSION file exists

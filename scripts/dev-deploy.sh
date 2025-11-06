@@ -116,8 +116,59 @@ if [ "$CURRENT_BRANCH" != "dev" ]; then
 fi
 
 # Check for uncommitted changes
+HAS_CHANGES=false
 if ! git diff-index --quiet HEAD --; then
-    error "You have uncommitted changes. Please commit them first:\n  git add .\n  git commit -m 'your message'"
+    HAS_CHANGES=true
+    warn "You have uncommitted changes:"
+    echo ""
+    git status --short
+    echo ""
+    
+    if [ "$FORCE" = false ]; then
+        read -p "$(echo -e ${YELLOW}Commit these changes? [Y/n]${NC} )" -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            error "Cannot proceed without committing changes. Please commit or stash them."
+        fi
+    fi
+    
+    # Extract commit message from CHANGELOG
+    echo ""
+    if [ -f "$CHANGELOG_FILE" ]; then
+        COMMIT_MSG=$(grep "^> \*\*Commit Summary:\*\*" "$CHANGELOG_FILE" | head -n1 | sed 's/^> \*\*Commit Summary:\*\* //')
+        
+        if [ -n "$COMMIT_MSG" ]; then
+            info "Auto-generated commit message from CHANGELOG:"
+            echo -e "  ${CYAN}$COMMIT_MSG${NC}"
+            echo ""
+            
+            if [ "$FORCE" = false ]; then
+                read -p "$(echo -e ${YELLOW}Use this message? [Y/n]${NC} )" -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Nn]$ ]]; then
+                    read -p "$(echo -e ${CYAN}Enter custom commit message:${NC} )" COMMIT_MSG
+                fi
+            fi
+        else
+            info "No commit summary found in CHANGELOG. Please enter manually."
+            info "Add this to CHANGELOG [Unreleased] section:"
+            echo '  > **Commit Summary:** feat: your message here'
+            echo ""
+            read -p "$(echo -e ${CYAN}Commit message:${NC} )" COMMIT_MSG
+        fi
+    else
+        read -p "$(echo -e ${CYAN}Commit message:${NC} )" COMMIT_MSG
+    fi
+    
+    if [ -z "$COMMIT_MSG" ]; then
+        error "Commit message cannot be empty"
+    fi
+    
+    # Add all changes and commit
+    git add -A
+    git commit -m "$COMMIT_MSG"
+    log "Changes committed: $COMMIT_MSG ✓"
+    echo ""
 fi
 
 log "On dev branch with clean working tree ✓"

@@ -32,10 +32,22 @@ It's **portable**, **persistent**, and **designed to run forever** — quietly p
 
 Start with the included example templates:
 
-1. Copy `.env-template.txt` to `.env` and edit to match your setup.
-2. Use `docker-compose.yml.template` as your base.
-3. Build the container or pull a prebuilt tag like `:latest :dev-nightly or versioned:dev-b004`
-4. `docker-compose up -d`
+1. Copy `examples-templates/env.template` to `.env` and configure required fields
+2. Copy `examples-templates/docker-compose.yml.template` to `docker-compose.yml`
+3. Pull a prebuilt image: `docker pull iwbp/iwbdpp:latest` (or `:dev-latest` for development)
+4. Start the platform: `docker-compose up -d`
+
+**Required .env fields:**
+- `COMPOSE_PROJECT_NAME` - Your 3-letter project code
+- `IWB_DOMAIN` - Your domain name
+- `IWB_MAIL_USER` & `IWB_MAIL_PASS` - Primary email credentials
+- `IWB_STORJ_GRANT` - Storj cloud storage access grant
+
+**Auto-generated (leave empty in .env):**
+All database and service passwords are securely auto-generated on first startup and persisted to `/var/data/state/`. To view them later, run inside the container:
+```bash
+/var/setup/scripts/show-passwords.sh
+```
 
 > For full setup instructions, including environment variables, see the `docs/` folder _(coming soon)_.
 
@@ -63,7 +75,11 @@ If you’re building tech aligned with sovereignty, creative freedom, or new blu
 
 ### 🏷️ Current Version
 
-**dev-b004** — the first working tag - basic email support ✅
+See the [VERSION](VERSION) file for current version. We follow [Semantic Versioning](https://semver.org/).
+
+**Development workflow:** We use a changelog-driven commit workflow. See [CHANGELOG-GUIDE.md](CHANGELOG-GUIDE.md) for details.
+
+**For developers:** Check [scripts/README.md](scripts/README.md) for automated build and deployment scripts.
 
 ---
 

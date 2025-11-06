@@ -15,17 +15,31 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** feat: automated commit workflow with changelog-driven messages
+
 ### Added
-- Working email support with Postfix/Dovecot/Rspamd
-- State-based setup script architecture for idempotent deployments
-- Storj cloud backup integration for all persistent data
-- PostfixAdmin for email account management
-- Automated SSL certificate management via certbot
-- WordPress integration with persistent storage
-- n8n automation platform with security isolation
-- Akash Network wallet management (creation/restore)
-- Comprehensive backup/restore system with dataset support
-- Cron-based automated backups (hourly, daily, weekly, monthly, yearly)
+- Semantic versioning workflow with `VERSION` file as single source of truth
+- Development automation scripts (`dev-deploy.sh`, `bump-version.sh`, `build-and-push.sh`, `release.sh`)
+- Interactive commit prompt in `dev-deploy.sh` and `release.sh` for uncommitted changes
+- Auto-generated commit messages from CHANGELOG "Commit Summary" section
+- Auto-generation and persistence for PostfixAdmin SQL password
+- Auto-generation and persistence for Rspamd controller passwords (normal and enable)
+- Comprehensive startup credentials email with WordPress, Rspamd, and n8n setup instructions
+- First-time setup guidance for n8n in startup email with warning symbols
+- Scripts documentation (`scripts/README.md` and `QUICK-REFERENCE.md`)
+
+### Changed
+- Reorganized `env.template` into three sections: Required User Input, Optional Configuration, Auto-Generated
+- Enhanced password management system to ensure all 5 passwords are auto-generated and persisted to `/var/data/state/`
+- Docker tagging strategy: `dev-latest` for development (no version in name), versioned tags for specific builds
+- Startup email now includes Rspamd web UI credentials and n8n setup instructions
+- `dev-deploy.sh` and `release.sh` now extract commit messages from CHANGELOG instead of prompting
+- Workflow now documentation-driven: update CHANGELOG first, commit message auto-generated from it
+
+### Fixed
+- PostfixAdmin SQL password now persists correctly across container restarts
+- Syntax error in `env.template` (`IWB_PERSISTENT_STORAGE` line cleaned up)
+- Password generation lifecycle now consistent for all services (MySQL, PostfixAdmin, WordPress, Rspamd)
 
 ### Changed
 - Moved to Alpine Linux 3.21 base

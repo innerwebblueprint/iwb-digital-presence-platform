@@ -82,18 +82,57 @@ export IWB_POSTFIXADMIN_SYMLINK="/var/www/html/postfixadmin/config.local.php"
 export IWB_POSTFIXADMIN_SETUP_PASSWORD="iwb-internal-setup-only"
 export IWB_POSTFIXADMIN_SQL_DBNAME="${COMPOSE_PROJECT_NAME}-postfixadmin"
 export IWB_POSTFIXADMIN_SQL_USER="${COMPOSE_PROJECT_NAME}-postfixadmin"
-# Generate password if not already set
+
+# PostfixAdmin SQL Password - Auto-generate and persist
+IWB_POSTFIXADMIN_SQL_PASSWORD_FILE="/var/data/state/iwb_postfixadmin_sql_password.txt"
 if [ -z "${IWB_POSTFIXADMIN_SQL_PASSWORD}" ]; then
-  export IWB_POSTFIXADMIN_SQL_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)
-  ## TO-DO Save this like I did the the other one. For now just getting rid of the log messge
-  #log "No DB password provided for PostfixAdmin — generated one automatically."
+  # Check if we have a saved version
+  if [ -f "$IWB_POSTFIXADMIN_SQL_PASSWORD_FILE" ]; then
+    export IWB_POSTFIXADMIN_SQL_PASSWORD="$(cat "$IWB_POSTFIXADMIN_SQL_PASSWORD_FILE")"
+    log "Loaded existing PostfixAdmin SQL password from $IWB_POSTFIXADMIN_SQL_PASSWORD_FILE."
+  else
+    # Generate new password, export it, and save it
+    export IWB_POSTFIXADMIN_SQL_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)"
+    mkdir -p "$(dirname "$IWB_POSTFIXADMIN_SQL_PASSWORD_FILE")"
+    echo "$IWB_POSTFIXADMIN_SQL_PASSWORD" > "$IWB_POSTFIXADMIN_SQL_PASSWORD_FILE"
+    chmod 600 "$IWB_POSTFIXADMIN_SQL_PASSWORD_FILE"
+    log "No PostfixAdmin SQL password provided - generated one automatically"
+  fi
 fi
 
 # === RSPAMD Config === #
-# These are configured in your .env as you may want to use them to access the
-# web administration interface
-#IWB_RSPAMD_CONTROLLER_PASSWORD="your_pass"
-#IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD="your_enable_pass"
+# Rspamd Controller Passwords - Auto-generate and persist
+IWB_RSPAMD_CONTROLLER_PASSWORD_FILE="/var/data/state/iwb_rspamd_controller_password.txt"
+if [ -z "${IWB_RSPAMD_CONTROLLER_PASSWORD}" ]; then
+  # Check if we have a saved version
+  if [ -f "$IWB_RSPAMD_CONTROLLER_PASSWORD_FILE" ]; then
+    export IWB_RSPAMD_CONTROLLER_PASSWORD="$(cat "$IWB_RSPAMD_CONTROLLER_PASSWORD_FILE")"
+    log "Loaded existing Rspamd controller password from $IWB_RSPAMD_CONTROLLER_PASSWORD_FILE."
+  else
+    # Generate new password, export it, and save it
+    export IWB_RSPAMD_CONTROLLER_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)"
+    mkdir -p "$(dirname "$IWB_RSPAMD_CONTROLLER_PASSWORD_FILE")"
+    echo "$IWB_RSPAMD_CONTROLLER_PASSWORD" > "$IWB_RSPAMD_CONTROLLER_PASSWORD_FILE"
+    chmod 600 "$IWB_RSPAMD_CONTROLLER_PASSWORD_FILE"
+    log "No Rspamd controller password provided - generated one automatically"
+  fi
+fi
+
+IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD_FILE="/var/data/state/iwb_rspamd_controller_enable_password.txt"
+if [ -z "${IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD}" ]; then
+  # Check if we have a saved version
+  if [ -f "$IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD_FILE" ]; then
+    export IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD="$(cat "$IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD_FILE")"
+    log "Loaded existing Rspamd enable password from $IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD_FILE."
+  else
+    # Generate new password, export it, and save it
+    export IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)"
+    mkdir -p "$(dirname "$IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD_FILE")"
+    echo "$IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD" > "$IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD_FILE"
+    chmod 600 "$IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD_FILE"
+    log "No Rspamd enable password provided - generated one automatically"
+  fi
+fi
 
 
 # === Webroot Directories ===
