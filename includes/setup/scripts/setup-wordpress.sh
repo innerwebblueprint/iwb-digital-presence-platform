@@ -70,8 +70,7 @@ if [ "$IWB_WORDPRESS_RESTORED" != "true" ]; then
   log "MySQL user check output:\n$OUTPUT"
 
   log "WordPress fresh install completed successfully."
-  # Launch WP admin email sending in background
-  source /var/setup/scripts/send-wp-admin-email.sh &
+  # Note: Credentials email now sent on every container startup (see setup-full.sh)
 fi
 
 # File permissions

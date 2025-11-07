@@ -15,8 +15,15 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** feat: send credentials email on every container start
+
 ### Added
+- Credentials email now sent on every container startup/restart for visibility and notification
+
 ### Changed
+- Moved credentials email from WordPress-only setup to end of `setup-full.sh` for all startups
+- Added Docker cache prompt to `dev-deploy.sh` workflow
+
 ### Fixed
 ### Removed
 ### Security
