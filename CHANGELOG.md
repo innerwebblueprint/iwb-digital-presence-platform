@@ -15,9 +15,22 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** feat: add WordPress user list to startup notification email
+
 ### Added
+- New `send-startup-email.sh` for container start/restart notifications
+- Startup email includes Rspamd credentials and service URLs
+- WordPress admin and editor user list in startup email with usernames, emails, and roles
+- Graceful handling when WordPress is not yet installed or still initializing
+
 ### Changed
+- WordPress credentials only sent during initial installation (not on restart)
+- Startup notification separates initial credentials from restart notifications
+
 ### Fixed
+- Startup email now works correctly whether WordPress is fresh or restored from backup
+- WordPress password lifecycle properly managed (generated once, stored in WP database, user-managed thereafter)
+
 ### Removed
 ### Security
 

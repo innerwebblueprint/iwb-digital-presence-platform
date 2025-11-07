@@ -49,7 +49,7 @@ if [ "$IWB_WORDPRESS_RESTORED" != "true" ]; then
   log "Generating wp-config.php..."
   cp "$WP_CONFIG_TEMPLATE" "$WP_CONFIG_TARGET"
 
-  # Generate secure password
+  # Generate secure password for initial WordPress admin
   IWB_WP_ADMIN_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)"
   echo "$IWB_WP_ADMIN_PASSWORD" > "$TEMP_PASS_FILE"
 
@@ -70,7 +70,8 @@ if [ "$IWB_WORDPRESS_RESTORED" != "true" ]; then
   log "MySQL user check output:\n$OUTPUT"
 
   log "WordPress fresh install completed successfully."
-  # Note: Credentials email now sent on every container startup (see setup-full.sh)
+  # Send initial credentials email with WordPress password
+  source /var/setup/scripts/send-wp-admin-email.sh &
 fi
 
 # File permissions

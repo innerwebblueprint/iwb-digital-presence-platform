@@ -186,9 +186,9 @@ if [ -f "$IWB_MARIADB_PID_FILE" ]; then
   rm -f "$IWB_MARIADB_PID_FILE"
 fi
 
-# Send credential email on every startup (provides restart notification)
-log "Sending credentials email to $IWB_MAIL_USER@$IWB_DOMAIN..."
-source /var/setup/scripts/send-wp-admin-email.sh &
+# Send startup notification email on every container start
+log "Sending startup notification email to $IWB_MAIL_USER@$IWB_DOMAIN..."
+source /var/setup/scripts/send-startup-email.sh &
 
 # Safe exit/return mechanism
 (return 0 2>/dev/null) || exit 0
