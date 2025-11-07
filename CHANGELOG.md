@@ -23,6 +23,19 @@ Version format:
 
 ---
 
+## [v1.0.0-dev.8] - 2025-11-07
+
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+
+---
+
 ## [v1.0.0-dev.7] - 2025-11-07
 
 > **Commit Summary:** feat: add WordPress user list to startup notification email
