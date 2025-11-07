@@ -15,16 +15,20 @@ Version format:
 
 ## [Unreleased]
 
-> **Commit Summary:** feat: send credentials email on every container start
+> **Commit Summary:** fix: enhanced SSL cert renewal with backup and email notification
 
 ### Added
 - Credentials email now sent on every container startup/restart for visibility and notification
+- Email notification when SSL certificates are automatically renewed
+- Certificate expiry date included in renewal notification emails
 
 ### Changed
 - Moved credentials email from WordPress-only setup to end of `setup-full.sh` for all startups
 - Added Docker cache prompt to `dev-deploy.sh` workflow
+- Enhanced `cert-renew-hook.sh` with proper logging and error handling
 
 ### Fixed
+- SSL certificate backup path corrected in `cert-renew-hook.sh` (full path to iwb-backup.sh)
 ### Removed
 ### Security
 
