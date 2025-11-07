@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.6] - 2025-11-07
+
 > **Commit Summary:** fix: enhanced SSL cert renewal with backup and email notification
 
 ### Added
@@ -31,6 +41,9 @@ Version format:
 - SSL certificate backup path corrected in `cert-renew-hook.sh` (full path to iwb-backup.sh)
 ### Removed
 ### Security
+
+---
+
 
 ---
 
