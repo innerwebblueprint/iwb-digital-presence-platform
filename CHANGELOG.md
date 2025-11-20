@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.9] - 2025-11-20
+
 > **Commit Summary:** fix: XML errors; prevent n8n backups from interrupting active workflow executions
 
 ### Added
@@ -30,6 +40,9 @@ Version format:
 
 ### Removed
 ### Security
+
+---
+
 
 ---
 
