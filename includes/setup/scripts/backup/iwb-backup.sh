@@ -141,8 +141,45 @@ case "$DATASET" in
     
     log "${MODULE} Backing up n8n SQLite database and user files..."
     
+    # Function to check if n8n has active workflow executions
+    check_n8n_active_executions() {
+      local n8n_url="http://localhost:5678/api/v1/executions"
+      local max_wait=300  # 5 minutes max wait
+      local wait_time=0
+      local check_interval=10
+      
+      # Check if n8n is responding
+      if ! curl -sf "$n8n_url?limit=1" > /dev/null 2>&1; then
+        log "${MODULE} n8n API not responding, assuming no active executions"
+        return 0
+      fi
+      
+      # Check for running executions
+      while [ $wait_time -lt $max_wait ]; do
+        local running_count=$(curl -sf "$n8n_url?status=running&limit=100" 2>/dev/null | grep -o '"id":' | wc -l || echo "0")
+        
+        if [ "$running_count" -eq 0 ]; then
+          log "${MODULE} No active workflow executions detected"
+          return 0
+        else
+          log "${MODULE} Found $running_count active workflow execution(s), waiting ${check_interval}s..."
+          sleep $check_interval
+          wait_time=$((wait_time + check_interval))
+        fi
+      done
+      
+      log "$ERR_PREFIX Timeout waiting for workflows to complete after ${max_wait}s. Skipping backup."
+      return 1
+    }
+    
     # Check if supervisord is running and stop n8n for consistent backup
     if pgrep supervisord > /dev/null; then
+      # First check if n8n has active executions
+      if ! check_n8n_active_executions; then
+        log "$ERR_PREFIX Active workflows still running after timeout. Backup cancelled to avoid interruption."
+        return 1
+      fi
+      
       log "${MODULE} Stopping n8n service for consistent backup..."
       supervisorctl stop n8n
       N8N_WAS_RUNNING=true

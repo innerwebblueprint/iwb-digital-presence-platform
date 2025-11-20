@@ -15,9 +15,19 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix: XML errors; prevent n8n backups from interrupting active workflow executions
+
 ### Added
+- PHP XML packages: `php83-simplexml` and `php83-xmlwriter` for improved XML handling support
+- n8n backup now checks for active workflow executions before stopping service
+
 ### Changed
+- n8n backup process now waits up to 5 minutes for running workflows to complete before backup
+- Backup will be skipped (with error log) if workflows are still active after timeout to avoid interruption
+
 ### Fixed
+- Prevented n8n hourly backups from interrupting active workflow executions
+
 ### Removed
 ### Security
 
