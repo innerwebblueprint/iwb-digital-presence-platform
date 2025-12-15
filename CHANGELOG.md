@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.11] - 2025-12-15
+
 > **Commit Summary:** feat: add backup 'all' function, cleanup script, and comprehensive scheduled backups with per-instance randomization
 
 ### Added
@@ -46,6 +56,9 @@ Version format:
 ### Fixed
 ### Removed
 ### Security
+
+---
+
 
 ---
 
