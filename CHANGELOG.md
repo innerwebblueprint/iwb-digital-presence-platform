@@ -16,6 +16,7 @@ Version format:
 ## [Unreleased]
 
 ### Added
+- Installing some new fonts.
 ### Changed
 ### Fixed
 ### Removed

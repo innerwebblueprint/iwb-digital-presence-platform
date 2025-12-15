@@ -96,6 +96,10 @@ RUN cd /tmp && \
     chmod +x /usr/local/bin/iwb-akash-deploy && \
     echo "✓ iwb-akash-deploy installed to /usr/local/bin"
 
+# Install fonts for imagemagik
+RUN apk add --no-cache \
+    msttcorefonts-installer && update-ms-fonts && fc-cache -f
+
 # Install fonts for ASS subtitles
 RUN apk add --no-cache \
     font-noto \
