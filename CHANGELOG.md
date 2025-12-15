@@ -15,8 +15,34 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** feat: add backup 'all' function, cleanup script, and comprehensive scheduled backups with per-instance randomization
+
 ### Added
+- `iwb-backup.sh`: Added 'all' dataset parameter to backup all components (mail, postfix, ssl, dkim, rspamd, wpdb, wphtml, n8n) sequentially with full status reporting
+- `iwb-backup-cleanup.sh`: New automated cleanup script with configurable retention policy:
+  - Snapshot: keep 5 most recent
+  - Hourly: skipped (rotation via overwrites, ~24 keys naturally maintained)
+  - Daily: keep 7 most recent
+  - Weekly: keep 4 most recent
+  - Monthly: keep 12 most recent
+  - Yearly: keep 10 most recent
+  - Supports `--dry-run` flag and per-dataset/interval cleanup
+  - Operates only on versioned Storj paths, never touches `latest/` objects
+  - Retention counts overridable via `IWB_RETENTION_<INTERVAL>` env vars
+- `setup-cron.sh`: Comprehensive backup scheduling added:
+  - Daily backups for all datasets (02:00–02:59 window)
+  - Weekly backups (Sunday, 02:00–03:59 window)
+  - Monthly backups (1st of month, 03:00–03:59 window)
+  - Yearly backups (Jan 1, 03:00–04:59 window)
+  - Nightly cleanup job (04:00–04:59 window)
+- Per-instance randomized cron staggering to prevent synchronized runs across multiple IWBDPP instances on shared hosts
+  - `compute_offset()` function generates deterministic minute offsets based on `IWB_DOMAIN` hash
+  - Distributes load across 10+ instances without coordination
+
 ### Changed
+- `setup-cron.sh`: All backup cron jobs now use randomized minute offsets instead of fixed times to avoid resource contention
+- Hourly backup jobs spread across 10-minute windows per dataset
+
 ### Fixed
 ### Removed
 ### Security

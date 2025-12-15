@@ -2,8 +2,9 @@
 # includes/setup/scripts/backup/iwb-backup.sh
 
 # Usage: ./iwb-backup.sh <dataset> <interval>
-# Datasets: mail, postfix, ssl, dkim, rspamd, wpdb, wphtml
+# Datasets: mail, postfix, ssl, dkim, rspamd, wpdb, wphtml, n8n, all
 # Intervals: snapshot, hourly, daily, weekly, monthly, yearly
+# Use 'all' as dataset to backup all components
 
 # --- Configuration ---
 MODULE="BACKUP"
@@ -25,6 +26,55 @@ if [ -z "$DATASET" ] || [ -z "$INTERVAL" ]; then
   log "$ERR_PREFIX: Usage: $0 <dataset> <interval>"
   (return 1 2>/dev/null) || exit 1
 fi
+
+# --- Handle 'all' dataset ---
+if [ "$DATASET" = "all" ]; then
+  log "Starting backup of all datasets with interval: $INTERVAL"
+  
+  # Define all available datasets (excluding 'all')
+  DATASETS=("mail" "postfix" "ssl" "dkim" "rspamd" "wpdb" "wphtml" "n8n")
+  
+  # Track backup status
+  FAILED_DATASETS=()
+  SUCCESSFUL_DATASETS=()
+  
+  # Backup each dataset sequentially
+  for DATASET_ITEM in "${DATASETS[@]}"; do
+    log "Backing up dataset: $DATASET_ITEM"
+    
+    if "$0" "$DATASET_ITEM" "$INTERVAL"; then
+      SUCCESSFUL_DATASETS+=("$DATASET_ITEM")
+      log "✓ Successfully backed up: $DATASET_ITEM"
+    else
+      FAILED_DATASETS+=("$DATASET_ITEM")
+      log "$ERR_PREFIX Failed to backup: $DATASET_ITEM (continuing with remaining datasets)"
+    fi
+  done
+  
+  # Report final status
+  log "=========================================="
+  log "All Backup Summary"
+  log "=========================================="
+  log "Successful: ${#SUCCESSFUL_DATASETS[@]}/${#DATASETS[@]}"
+  if [ ${#SUCCESSFUL_DATASETS[@]} -gt 0 ]; then
+    for ds in "${SUCCESSFUL_DATASETS[@]}"; do
+      log "  ✓ $ds"
+    done
+  fi
+  
+  if [ ${#FAILED_DATASETS[@]} -gt 0 ]; then
+    log "Failed: ${#FAILED_DATASETS[@]}"
+    for ds in "${FAILED_DATASETS[@]}"; do
+      log "  ✗ $ds"
+    done
+    log "$ERR_PREFIX Some backups failed. Check logs above."
+    (return 1 2>/dev/null) || exit 1
+  fi
+  
+  log "All backups completed successfully."
+  (return 0 2>/dev/null) || exit 0
+fi
+
 
 # --- Timestamp Naming ---
 case "$INTERVAL" in
