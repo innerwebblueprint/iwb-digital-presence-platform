@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.10] - 2025-12-15
+
 > **Commit Summary:** fix: ensure certbot renew deploy-hook reloads mail services (stale IMAP cert)
 
 ### Added
@@ -25,6 +35,9 @@ Version format:
 - Mail TLS now refreshes correctly after renew: Dovecot/Postfix are reloaded/restarted so IMAP clients (e.g., Thunderbird) see the renewed certificate instead of a stale/expired one.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
