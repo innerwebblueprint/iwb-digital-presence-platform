@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.13] - 2025-12-16
+
 > **Commit Summary:** fix: re-enable n8n Execute Command node disabled in v2.0.2+
 
 ### Added
@@ -26,6 +36,9 @@ Version format:
 
 ### Removed
 ### Security
+
+---
+
 
 ---
 
