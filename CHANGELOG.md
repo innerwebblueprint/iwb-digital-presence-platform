@@ -15,11 +15,26 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix: compile Akash provider-services from source for Alpine/musl compatibility
+
 ### Added
+- Multi-stage Docker build for Akash provider-services binary compilation
+- Support for semver development version format in build-and-push.sh (v#.#.#-dev.#)
+
 ### Changed
+- Akash provider-services now compiled from source instead of using pre-built binaries
+- Build process uses Go 1.23+ with GOTOOLCHAIN=auto for version compatibility
+- Static binary compilation with tags "osusergo,netgo,static_build"
+
 ### Fixed
-### Removed
-### Security
+- Akash provider-services binary execution on Alpine Linux (musl libc)
+- Issue where Akash v0.10.5+ binaries compiled for glibc failed with "cannot execute: required file not found"
+- Build bloat by separating Go build stage from final runtime image
+
+### Technical Details
+**Root Cause**: Akash provider-services v0.10.5+ (released Nov 26, 2025) binaries are compiled for Ubuntu/glibc with C23 standard library functions (`__isoc23_strtoul`) that don't exist in Alpine's musl libc.
+
+**Solution**: Multi-stage build compiles provider-services from source in a golang:1.23-alpine builder stage, then copies only the static binary to the final Alpine runtime image. This ensures musl compatibility while keeping image size minimal.
 
 ---
 

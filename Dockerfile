@@ -1,5 +1,25 @@
 # syntax=docker/dockerfile:1
 
+# Stage 1: Build Akash provider-services binary
+FROM golang:1.23-alpine AS akash-builder
+RUN apk add --no-cache git curl
+WORKDIR /build
+RUN AKASH_VERSION=$(curl -s https://api.github.com/repos/akash-network/provider/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4) && \
+    echo "Building Akash provider-services ${AKASH_VERSION}..." && \
+    git clone --depth 1 --branch ${AKASH_VERSION} https://github.com/akash-network/provider.git && \
+    cd provider && \
+    GOTOOLCHAIN=auto CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -mod=readonly \
+    -tags "osusergo,netgo,static_build" \
+    -ldflags="-s -w \
+    -X github.com/akash-network/provider/version.Name=provider-services \
+    -X github.com/akash-network/provider/version.AppName=provider-services \
+    -X github.com/akash-network/provider/version.Version=${AKASH_VERSION}" \
+    -o /build/provider-services \
+    ./cmd/provider-services && \
+    echo "✓ provider-services ${AKASH_VERSION} compiled successfully"
+
+# Stage 2: Main application image
 FROM alpine:3.21
 
 LABEL maintainer="InnerWebBlueprint <hello@innerwebblueprint.com>"
@@ -75,12 +95,9 @@ RUN wget -O /tmp/uplink.zip https://github.com/storj/storj/releases/latest/downl
     chmod +x /usr/local/bin/uplink && \
     rm -rf /tmp/uplink.zip /tmp/uplink
 
-# Install Akash CLI (provider-services)
-RUN cd /tmp && \
-    curl -sfL https://raw.githubusercontent.com/akash-network/provider/main/install.sh | bash && \
-    mv ./bin/provider-services /usr/local/bin/provider-services && \
-    chmod +x /usr/local/bin/provider-services && \
-    rm -rf ./bin
+# Copy Akash provider-services binary from builder stage
+COPY --from=akash-builder /build/provider-services /usr/local/bin/provider-services
+RUN chmod +x /usr/local/bin/provider-services
 
 # Install wp-cli and allow root usage
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
