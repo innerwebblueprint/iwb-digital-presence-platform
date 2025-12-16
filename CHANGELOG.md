@@ -27,15 +27,19 @@ Version format:
 
 > **Commit Summary:** fix: re-enable n8n Execute Command node disabled in v2.0.2+
 
-### Added
-- Enable n8n Execute Command node via `NODES_INCLUDE` environment variable
-
-### Changed
 ### Fixed
-- n8n v2.0.2+ compatibility: Execute Command node now explicitly whitelisted in supervisord configuration
+- n8n v2.0.2+ compatibility: Execute Command node now available after correcting environment variable
+  - Changed from incorrect `N8N_NODES_EXCLUDE=""` to proper `NODES_EXCLUDE="[]"`
+  - Variable name must be `NODES_EXCLUDE` (without N8N_ prefix) per official n8n documentation
+  - Empty array format `"[]"` required to disable default node exclusion list
+  - Diagnostic script added at `includes/setup/scripts/diagnose-n8n-nodes.sh` for troubleshooting
 
-### Removed
-### Security
+### Technical Details
+**Root Cause**: n8n v2.0+ excludes "dangerous" nodes by default for security (Execute Command, Local File Trigger). Default exclusion: `NODES_EXCLUDE='["n8n-nodes-base.executeCommand", "n8n-nodes-base.localFileTrigger"]'`
+
+**Solution**: Set `NODES_EXCLUDE="[]"` in supervisord configuration to override default exclusion list and enable all nodes. The variable name does NOT use the `N8N_` prefix despite other n8n environment variables following that pattern.
+
+**Reference**: https://docs.n8n.io/2-0-breaking-changes/#disable-executecommand-and-localfiletrigger-nodes-by-default
 
 ---
 
