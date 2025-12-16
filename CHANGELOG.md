@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.12] - 2025-12-16
+
 > **Commit Summary:** fix: compile Akash provider-services from source for Alpine/musl compatibility
 
 ### Added
@@ -35,6 +45,9 @@ Version format:
 **Root Cause**: Akash provider-services v0.10.5+ (released Nov 26, 2025) binaries are compiled for Ubuntu/glibc with C23 standard library functions (`__isoc23_strtoul`) that don't exist in Alpine's musl libc.
 
 **Solution**: Multi-stage build compiles provider-services from source in a golang:1.23-alpine builder stage, then copies only the static binary to the final Alpine runtime image. This ensures musl compatibility while keeping image size minimal.
+
+---
+
 
 ---
 
