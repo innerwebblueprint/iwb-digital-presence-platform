@@ -15,9 +15,15 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix: re-enable n8n Execute Command node disabled in v2.0.2+
+
 ### Added
+- Enable n8n Execute Command node via `NODES_INCLUDE` environment variable
+
 ### Changed
 ### Fixed
+- n8n v2.0.2+ compatibility: Execute Command node now explicitly whitelisted in supervisord configuration
+
 ### Removed
 ### Security
 
