@@ -83,10 +83,16 @@ log "Building version: $VERSION"
 TAGS=()
 
 if [[ $VERSION =~ ^dev-b([0-9]+)$ ]]; then
-    # Development build
+    # Development build (legacy format)
     TAGS+=("-t" "$DOCKER_REPO:$VERSION")
     TAGS+=("-t" "$DOCKER_REPO:dev-latest")
-    log "Development build detected"
+    log "Development build detected (legacy format)"
+    
+elif [[ $VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)-dev\.([0-9]+)$ ]]; then
+    # Development build (semver format: v1.0.0-dev.11)
+    TAGS+=("-t" "$DOCKER_REPO:$VERSION")
+    TAGS+=("-t" "$DOCKER_REPO:dev-latest")
+    log "Development build detected (semver dev)"
     
 elif [[ $VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
     # Production release
@@ -102,7 +108,7 @@ elif [[ $VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
     log "Production release detected"
     
 else
-    error "Unknown version format: $VERSION (expected dev-b### or v#.#.#)"
+    error "Unknown version format: $VERSION (expected dev-b###, v#.#.#-dev.#, or v#.#.#)"
 fi
 
 # Display tags
