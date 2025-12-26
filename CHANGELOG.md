@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.15] - 2025-12-25
+
 > **Commit Summary:** feat: enable ManageSieve protocol for server-side email filter management
 
 ### Added
@@ -29,6 +39,9 @@ Version format:
 ### Fixed
 ### Removed
 ### Security
+
+---
+
 
 ---
 
