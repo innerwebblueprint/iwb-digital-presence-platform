@@ -15,7 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** feat: enable ManageSieve protocol for server-side email filter management
+
 ### Added
+- ManageSieve service configuration in dovecot-99-full.conf.template
+  - Added 'sieve' protocol to Dovecot protocols list
+  - Added service managesieve-login listener on port 4190
+  - Added service managesieve daemon for filter management
+- Users can now manage server-side Sieve filters via email clients (Thunderbird, Roundcube)
+- Filters stored in user home directories (~/.dovecot.sieve)
+
 ### Changed
 ### Fixed
 ### Removed

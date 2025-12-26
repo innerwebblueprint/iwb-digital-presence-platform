@@ -17,7 +17,7 @@ managesieve_sieve_capability = fileinto reject envelope encoded-character vacati
 
 mbox_write_locks = fcntl
 
-protocols = imap pop3 lmtp
+protocols = imap pop3 lmtp sieve
 
 namespace inbox {
   inbox = yes
@@ -86,6 +86,16 @@ service lmtp {
     mode = 0600
     user = postfix
   }
+}
+
+service managesieve-login {
+  inet_listener sieve {
+    port = 4190
+  }
+}
+
+service managesieve {
+  process_limit = 10
 }
 
 service auth-worker {
