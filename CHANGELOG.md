@@ -23,6 +23,19 @@ Version format:
 
 ---
 
+## [v1.0.0-dev.16] - 2025-12-25
+
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+
+---
+
 ## [v1.0.0-dev.15] - 2025-12-25
 
 > **Commit Summary:** fix: correct Dovecot password authentication and disable password logging
