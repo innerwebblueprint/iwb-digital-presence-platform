@@ -33,7 +33,9 @@ RUN DOVECOT_VERSION=$(dovecot --version | cut -d' ' -f1) && \
     ./configure --with-dovecot=/usr/lib/dovecot && \
     CPPFLAGS="-DHAVE_SIEVE_UNFINISHED" make && \
     make install-strip DESTDIR=/build/pigeonhole-install && \
-    echo "✓ Pigeonhole compiled with unfinished extensions enabled"
+    echo "✓ Pigeonhole compiled with unfinished extensions enabled" && \
+    echo "Installed files:" && \
+    find /build/pigeonhole-install -type f | sort
 
 # Stage 3: Main application image
 FROM alpine:3.21
@@ -60,6 +62,7 @@ RUN apk add --no-cache \
 
 # Copy custom-built Pigeonhole with ereject support from builder
 COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/ /usr/lib/dovecot/
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/libexec/dovecot/ /usr/libexec/dovecot/
 
 # Database: MariaDB server and client
 RUN apk add --no-cache mariadb mariadb-client
