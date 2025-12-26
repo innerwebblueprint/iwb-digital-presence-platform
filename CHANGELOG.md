@@ -25,9 +25,22 @@ Version format:
 
 ## [v1.0.0-dev.16] - 2025-12-25
 
+> **Commit Summary:** fix: resolve Dovecot authentication and startup email WordPress user listing
+
 ### Added
 ### Changed
+- Dovecot SQL password query now returns raw password hash without prefix modification
+  - PostfixAdmin passwords already contain `$1$` MD5-CRYPT format identifier
+  - Removed incorrect `CONCAT('{MD5-CRYPT}', password)` wrapper
+
 ### Fixed
+- Dovecot authentication for IMAP/POP3/ManageSieve now works correctly
+  - Password hash comparison fixed by removing redundant scheme prefix
+  - Dovecot `default_pass_scheme = MD5-CRYPT` properly validates `$1$` prefixed hashes
+- WordPress admin/editor user list in startup email now displays correctly
+  - Fixed WP-CLI command: `--role=administrator,editor` (invalid) → separate queries per role
+  - Now fetches administrators and editors separately, then combines results
+
 ### Removed
 ### Security
 

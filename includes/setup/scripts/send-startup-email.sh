@@ -20,8 +20,10 @@ WP_ROOT="/var/www/html/wordpress"
 if wp core is-installed --path="$WP_ROOT" --allow-root 2>/dev/null; then
   log "WordPress is installed, fetching admin and editor users..."
   
-  # Get users with administrator or editor roles
-  WP_USERS=$(wp user list --role=administrator,editor --fields=user_login,user_email,roles --format=csv --path="$WP_ROOT" --allow-root 2>/dev/null | tail -n +2)
+  # Get users with administrator or editor roles (fetch separately and combine)
+  WP_ADMINS=$(wp user list --role=administrator --fields=user_login,user_email,roles --format=csv --path="$WP_ROOT" --allow-root 2>/dev/null | tail -n +2)
+  WP_EDITORS=$(wp user list --role=editor --fields=user_login,user_email,roles --format=csv --path="$WP_ROOT" --allow-root 2>/dev/null | tail -n +2)
+  WP_USERS=$(printf "%s\n%s" "$WP_ADMINS" "$WP_EDITORS" | grep -v '^$')
   
   if [ -n "$WP_USERS" ]; then
     # Format the users list for email

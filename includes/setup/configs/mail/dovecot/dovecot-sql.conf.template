@@ -1,7 +1,7 @@
 driver = mysql
 connect = host=localhost dbname={{IWB_POSTFIXADMIN_SQL_DBNAME}} user={{IWB_POSTFIXADMIN_SQL_USER}} password={{IWB_POSTFIXADMIN_SQL_PASSWORD}}
-default_pass_scheme = CRYPT
+default_pass_scheme = MD5-CRYPT
 
-password_query = SELECT username AS user, CONCAT('{CRYPT}', password) AS password FROM mailbox WHERE username = '%u' AND active = '1'
+password_query = SELECT username AS user, password FROM mailbox WHERE username = '%u' AND active = '1'
 
 user_query = SELECT CONCAT('/var/mail/', domain, '/', local_part, '/') AS home, CONCAT('maildir:/var/mail/', domain, '/', local_part, '/Maildir/') AS mail, 10000 AS uid, 10000 AS gid FROM mailbox WHERE username = '%u' AND active = '1'
