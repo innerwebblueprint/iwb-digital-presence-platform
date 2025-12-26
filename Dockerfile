@@ -23,11 +23,11 @@ RUN AKASH_VERSION=$(curl -s https://api.github.com/repos/akash-network/provider/
 FROM alpine:3.21 AS pigeonhole-builder
 RUN apk add --no-cache \
     git cmake make gcc g++ libc-dev automake autoconf libtool \
-    dovecot-dev
+    dovecot dovecot-dev
 WORKDIR /build
 RUN DOVECOT_VERSION=$(dovecot --version | cut -d' ' -f1) && \
     echo "Building Pigeonhole for Dovecot ${DOVECOT_VERSION} with ereject support..." && \
-    git clone --depth 1 --branch master https://github.com/dovecot/pigeonhole.git && \
+    git clone --depth 1 --branch main https://github.com/dovecot/pigeonhole.git && \
     cd pigeonhole && \
     ./autogen.sh && \
     ./configure --with-dovecot=/usr/lib/dovecot --enable-unfinished-features && \
