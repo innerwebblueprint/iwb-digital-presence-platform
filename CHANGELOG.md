@@ -23,6 +23,19 @@ Version format:
 
 ---
 
+## [v1.0.0-dev.23] - 2025-12-26
+
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+
+---
+
 ## [v1.0.0-dev.22] - 2025-12-26
 
 ### Added
