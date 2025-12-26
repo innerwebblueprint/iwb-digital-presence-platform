@@ -63,16 +63,17 @@ RUN apk add --no-cache \
     ls -lh /usr/lib/dovecot/*sieve* 2>/dev/null || echo "No sieve files found"
 
 # Overwrite Sieve plugin libraries with custom ereject-enabled version
-# Keep Alpine's executables (managesieve-login etc) for proper symbol linking
-COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/ /tmp/custom-sieve/
-RUN echo "=== Custom built Sieve plugins ===" && \
-    ls -lh /tmp/custom-sieve/*sieve* && \
-    echo "=== Copying custom Sieve libraries ===" && \
-    cp -v /tmp/custom-sieve/lib*.so* /usr/lib/dovecot/ && \
-    rm -rf /tmp/custom-sieve && \
-    echo "=== Verification: Final Sieve plugins ===" && \
+# Keep Alpine's executables (managesieve-login etc) for proper symbol linking  
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/lib90_sieve_plugin.so /usr/lib/dovecot/
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/lib95_imap_filter_sieve_plugin.so /usr/lib/dovecot/
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/lib95_imap_sieve_plugin.so /usr/lib/dovecot/
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/libdovecot-sieve.so.0.0.0 /usr/lib/dovecot/
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/sieve/ /usr/lib/dovecot/sieve/
+RUN echo "=== Verification: Custom Sieve plugins installed ===" && \
     ls -lh /usr/lib/dovecot/*sieve* && \
-    echo "=== Verification: ManageSieve executables (should be Alpine's) ===" && \
+    echo "=== Checking for ereject in main library ===" && \
+    strings /usr/lib/dovecot/libdovecot-sieve.so.0.0.0 | grep -i ereject && \
+    echo "=== ManageSieve executables (Alpine's for proper linking) ===" && \
     ls -lh /usr/libexec/dovecot/managesieve*
 
 # Database: MariaDB server and client
