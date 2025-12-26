@@ -1,7 +1,7 @@
 # includes/setup/configs/mail/dovecot/dovecot-99-full.conf.template
 
 auth_debug = yes
-auth_debug_passwords = yes
+auth_debug_passwords = no
 auth_verbose = yes
 
 debug_log_path = /var/log/dovecot-debug.log

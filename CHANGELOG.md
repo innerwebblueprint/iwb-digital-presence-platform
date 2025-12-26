@@ -25,7 +25,7 @@ Version format:
 
 ## [v1.0.0-dev.15] - 2025-12-25
 
-> **Commit Summary:** feat: enable ManageSieve protocol for server-side email filter management
+> **Commit Summary:** fix: correct Dovecot password authentication and disable password logging
 
 ### Added
 - ManageSieve service configuration in dovecot-99-full.conf.template
@@ -36,8 +36,18 @@ Version format:
 - Filters stored in user home directories (~/.dovecot.sieve)
 
 ### Changed
+- Dovecot SQL password query now uses `CONCAT('{CRYPT}', password)` to properly identify pre-hashed passwords
+- Changed `default_pass_scheme` from `MD5-CRYPT` to `CRYPT` for broader crypt() format support
+
 ### Fixed
+- ManageSieve/IMAP/POP3 authentication failures caused by password scheme mismatch
+  - Dovecot now correctly validates passwords hashed by PostfixAdmin's PHP crypt() function
+  - Password query prepends `{CRYPT}` prefix to indicate stored hash format
+- Disabled `auth_debug_passwords` to prevent plaintext passwords from appearing in logs
+
 ### Removed
+### Security
+- Passwords no longer logged in Dovecot debug output (auth_debug_passwords = no)
 ### Security
 
 ---
