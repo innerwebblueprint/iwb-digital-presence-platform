@@ -60,9 +60,6 @@ RUN apk add --no-cache \
 
 # Copy custom-built Pigeonhole with ereject support from builder
 COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/ /usr/lib/dovecot/
-COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/libexec/dovecot/ /usr/libexec/dovecot/
-COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/bin/ /usr/bin/
-COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/share/doc/dovecot/ /usr/share/doc/dovecot/
 
 # Database: MariaDB server and client
 RUN apk add --no-cache mariadb mariadb-client
