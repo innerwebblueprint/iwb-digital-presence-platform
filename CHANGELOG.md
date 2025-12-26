@@ -23,6 +23,19 @@ Version format:
 
 ---
 
+## [v1.0.0-dev.18] - 2025-12-26
+
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+
+---
+
 ## [v1.0.0-dev.17] - 2025-12-25
 
 > **Commit Summary:** fix: enable Sieve ereject extension
