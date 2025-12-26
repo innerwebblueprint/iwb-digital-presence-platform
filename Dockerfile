@@ -29,11 +29,21 @@ RUN DOVECOT_VERSION=$(dovecot --version | cut -d' ' -f1) && \
     echo "Building Pigeonhole for Dovecot ${DOVECOT_VERSION} with ereject support..." && \
     git clone --depth 1 --branch release-0.5 https://github.com/dovecot/pigeonhole.git && \
     cd pigeonhole && \
+    echo "=== Patching source to enable ereject unconditionally ===" && \
+    find . -name "*.c" -o -name "*.h" | xargs grep -l "HAVE_SIEVE_UNFINISHED" | while read file; do \
+    echo "Patching $file" && \
+    sed -i 's/#ifdef HAVE_SIEVE_UNFINISHED/#if 1/g' "$file" && \
+    sed -i 's/#ifndef HAVE_SIEVE_UNFINISHED/#if 0/g' "$file"; \
+    done && \
+    echo "=== Building Pigeonhole ===" && \
     ./autogen.sh && \
     ./configure --with-dovecot=/usr/lib/dovecot && \
-    CPPFLAGS="-DHAVE_SIEVE_UNFINISHED" make && \
+    make && \
     make install-strip DESTDIR=/build/pigeonhole-install && \
-    echo "✓ Pigeonhole compiled with unfinished extensions enabled" && \
+    echo "✓ Pigeonhole compiled with ereject enabled" && \
+    echo "=== Verifying ereject in compiled library ===" && \
+    strings /build/pigeonhole-install/usr/lib/dovecot/libdovecot-sieve.so.0.0.0 | grep -i ereject && \
+    echo "✓ ereject found in library" && \
     echo "Installed files:" && \
     find /build/pigeonhole-install -type f | sort
 
