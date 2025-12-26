@@ -30,8 +30,8 @@ RUN DOVECOT_VERSION=$(dovecot --version | cut -d' ' -f1) && \
     git clone --depth 1 --branch main https://github.com/dovecot/pigeonhole.git && \
     cd pigeonhole && \
     ./autogen.sh && \
-    CPPFLAGS="-DHAVE_SIEVE_UNFINISHED" ./configure --with-dovecot=/usr/lib/dovecot && \
-    make && \
+    ./configure --with-dovecot=/usr/lib/dovecot && \
+    CPPFLAGS="-DHAVE_SIEVE_UNFINISHED" make && \
     make install-strip DESTDIR=/build/pigeonhole-install && \
     echo "✓ Pigeonhole compiled with unfinished extensions enabled"
 
