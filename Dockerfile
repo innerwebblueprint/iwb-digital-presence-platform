@@ -19,7 +19,23 @@ RUN AKASH_VERSION=$(curl -s https://api.github.com/repos/akash-network/provider/
     ./cmd/provider-services && \
     echo "✓ provider-services ${AKASH_VERSION} compiled successfully"
 
-# Stage 2: Main application image
+# Stage 2: Build Pigeonhole with unfinished extensions (for ereject support)
+FROM alpine:3.21 AS pigeonhole-builder
+RUN apk add --no-cache \
+    git cmake make gcc g++ libc-dev automake autoconf libtool \
+    dovecot-dev
+WORKDIR /build
+RUN DOVECOT_VERSION=$(dovecot --version | cut -d' ' -f1) && \
+    echo "Building Pigeonhole for Dovecot ${DOVECOT_VERSION} with ereject support..." && \
+    git clone --depth 1 --branch master https://github.com/dovecot/pigeonhole.git && \
+    cd pigeonhole && \
+    ./autogen.sh && \
+    ./configure --with-dovecot=/usr/lib/dovecot --enable-unfinished-features && \
+    make && \
+    make install-strip DESTDIR=/build/pigeonhole-install && \
+    echo "✓ Pigeonhole compiled with unfinished extensions enabled"
+
+# Stage 3: Main application image
 FROM alpine:3.21
 
 LABEL maintainer="InnerWebBlueprint <hello@innerwebblueprint.com>"
@@ -36,11 +52,17 @@ RUN apk add --no-cache \
     python3 py3-pip py3-cryptography py3-setuptools py3-wheel py3-yaml py3-requests \
     gcc musl-dev libffi-dev openssl-dev
 
-# Mail stack: Postfix, Dovecot, Rspamd
+# Mail stack: Postfix, Dovecot (without pigeonhole - we'll install custom build)
 RUN apk add --no-cache \
     postfix postfix-mysql \
-    dovecot dovecot-lmtpd dovecot-pigeonhole-plugin dovecot-pop3d dovecot-mysql \
+    dovecot dovecot-lmtpd dovecot-pop3d dovecot-mysql \
     rspamd redis mailx
+
+# Copy custom-built Pigeonhole with ereject support from builder
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/ /usr/lib/dovecot/
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/libexec/dovecot/ /usr/libexec/dovecot/
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/bin/ /usr/bin/
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/share/doc/dovecot/ /usr/share/doc/dovecot/
 
 # Database: MariaDB server and client
 RUN apk add --no-cache mariadb mariadb-client

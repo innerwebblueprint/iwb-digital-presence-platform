@@ -25,11 +25,40 @@ Version format:
 
 ## [v1.0.0-dev.19] - 2025-12-26
 
+> **Commit Summary:** feat: compile Pigeonhole with ereject support for protocol-level email rejection
+
 ### Added
+- Custom Pigeonhole build with `ereject` extension support
+  - Added Stage 2 builder to Dockerfile to compile Pigeonhole from source
+  - Enabled unfinished extensions via `--enable-unfinished-features` flag
+  - `ereject` command now available for protocol-level message rejection (never accepts message)
+- ManageSieve service configuration in dovecot-99-full.conf.template
+  - Added 'sieve' protocol to Dovecot protocols list
+  - Added service managesieve-login listener on port 4190
+  - Added service managesieve daemon for filter management
+- Sieve plugin enabled for LMTP delivery protocol
+  - Added `protocol lmtp { mail_plugins = $mail_plugins sieve }` configuration
+  - Sieve filters now execute during mail delivery
+- Users can now manage server-side Sieve filters via email clients
+- Filters stored in user home directories (~/.dovecot.sieve)
+- Comprehensive Sieve extension support including reject, ereject, fileinto, vacation, regex, variables, etc.
+
 ### Changed
+- Replaced Alpine's dovecot-pigeonhole-plugin with custom-compiled version
+- Dovecot password authentication disabled debug password logging (`auth_debug_passwords = no`)
+- WordPress admin/editor user listing in startup email now correctly fetches users separately per role
+
 ### Fixed
+- ManageSieve authentication with PostfixAdmin password hashes (uses standard crypt() format)
+- WordPress user list in startup email (WP-CLI `--role` doesn't support comma-separated values)
+- Sieve reject behavior: `reject` command sends bounce after accepting (unsafe), `ereject` rejects at SMTP/LMTP protocol level (safe)
+
 ### Removed
 ### Security
+- Passwords no longer logged in Dovecot debug output
+- `ereject` provides protocol-level rejection preventing message acceptance (vs `reject` which accepts then bounces)
+
+**Technical Note:** Alpine's dovecot-pigeonhole-plugin doesn't include `ereject` because it's marked as UNFINISHED in Pigeonhole source (wrapped in `#ifdef HAVE_SIEVE_UNFINISHED`). We now compile from source with this flag enabled to provide proper protocol-level rejection capabilities.
 
 ---
 
