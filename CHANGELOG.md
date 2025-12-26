@@ -25,10 +25,19 @@ Version format:
 
 ## [v1.0.0-dev.17] - 2025-12-25
 
+> **Commit Summary:** fix: enable Sieve ereject extension
+
 ### Added
+- Sieve `ereject` extension support for safe message rejection at SMTP protocol level
+  - Added to `managesieve_sieve_capability` in dovecot-99-full.conf.template
+
 ### Changed
 ### Fixed
 ### Removed
+- Deprecated `reject` extension from Sieve capabilities (replaced by safer `ereject`)
+  - Enforces security best practice: `ereject` always rejects at SMTP level before delivery
+  - Prevents unsafe `reject` behavior that may leak message content
+
 ### Security
 
 ---

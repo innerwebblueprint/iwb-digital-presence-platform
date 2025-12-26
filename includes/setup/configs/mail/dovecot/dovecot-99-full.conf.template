@@ -13,7 +13,7 @@ disable_plaintext_auth = no
 auth_mechanisms = plain login
 
 managesieve_notify_capability = mailto
-managesieve_sieve_capability = fileinto reject envelope encoded-character vacation subaddress comparator-i;ascii-numeric relational regex imap4flags copy include variables body enotify environment mailbox date index ihave duplicate mime foreverypart extracttext
+managesieve_sieve_capability = fileinto ereject envelope encoded-character vacation subaddress comparator-i;ascii-numeric relational regex imap4flags copy include variables body enotify environment mailbox date index ihave duplicate mime foreverypart extracttext
 
 mbox_write_locks = fcntl
 
