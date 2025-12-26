@@ -27,7 +27,7 @@ RUN apk add --no-cache \
 WORKDIR /build
 RUN DOVECOT_VERSION=$(dovecot --version | cut -d' ' -f1) && \
     echo "Building Pigeonhole for Dovecot ${DOVECOT_VERSION} with ereject support..." && \
-    git clone --depth 1 --branch release-0.5.21 https://github.com/dovecot/pigeonhole.git && \
+    git clone --depth 1 --branch release-0.5 https://github.com/dovecot/pigeonhole.git && \
     cd pigeonhole && \
     ./autogen.sh && \
     ./configure --with-dovecot=/usr/lib/dovecot && \
@@ -54,15 +54,26 @@ RUN apk add --no-cache \
     python3 py3-pip py3-cryptography py3-setuptools py3-wheel py3-yaml py3-requests \
     gcc musl-dev libffi-dev openssl-dev
 
-# Mail stack: Postfix, Dovecot (without pigeonhole - we'll install custom build)
+# Mail stack: Postfix, Dovecot, Pigeonhole (Alpine package for proper linking)
 RUN apk add --no-cache \
     postfix postfix-mysql \
-    dovecot dovecot-lmtpd dovecot-pop3d dovecot-mysql \
-    rspamd redis mailx
+    dovecot dovecot-lmtpd dovecot-pop3d dovecot-mysql dovecot-pigeonhole-plugin \
+    rspamd redis mailx && \
+    echo "=== Alpine's Sieve plugins ===" && \
+    ls -lh /usr/lib/dovecot/*sieve* 2>/dev/null || echo "No sieve files found"
 
-# Copy custom-built Pigeonhole with ereject support from builder
-COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/ /usr/lib/dovecot/
-COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/libexec/dovecot/ /usr/libexec/dovecot/
+# Overwrite Sieve plugin libraries with custom ereject-enabled version
+# Keep Alpine's executables (managesieve-login etc) for proper symbol linking
+COPY --from=pigeonhole-builder /build/pigeonhole-install/usr/lib/dovecot/ /tmp/custom-sieve/
+RUN echo "=== Custom built Sieve plugins ===" && \
+    ls -lh /tmp/custom-sieve/*sieve* && \
+    echo "=== Copying custom Sieve libraries ===" && \
+    cp -v /tmp/custom-sieve/lib*.so* /usr/lib/dovecot/ && \
+    rm -rf /tmp/custom-sieve && \
+    echo "=== Verification: Final Sieve plugins ===" && \
+    ls -lh /usr/lib/dovecot/*sieve* && \
+    echo "=== Verification: ManageSieve executables (should be Alpine's) ===" && \
+    ls -lh /usr/libexec/dovecot/managesieve*
 
 # Database: MariaDB server and client
 RUN apk add --no-cache mariadb mariadb-client
