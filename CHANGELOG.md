@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.31] - 2026-02-16
+
 > **Commit Summary:** fix: harden startup email WordPress admin/editor user lookup
 
 ### Added
@@ -25,6 +35,9 @@ Version format:
 - Added fallback user discovery path (`wp user list` all users + role filtering) when direct `--role` queries return empty results.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
