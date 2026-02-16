@@ -15,9 +15,14 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix: harden startup email WordPress admin/editor user lookup
+
 ### Added
 ### Changed
+- Startup notification email now handles WP-CLI role query failures explicitly and logs lookup errors instead of silently suppressing them.
 ### Fixed
+- Startup email WordPress admin/editor table no longer incorrectly reports no users when role-filter queries fail transiently.
+- Added fallback user discovery path (`wp user list` all users + role filtering) when direct `--role` queries return empty results.
 ### Removed
 ### Security
 

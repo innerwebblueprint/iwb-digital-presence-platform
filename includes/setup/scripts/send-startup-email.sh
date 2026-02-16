@@ -19,11 +19,37 @@ WP_USERS_SECTION=""
 WP_ROOT="/var/www/html/wordpress"
 if wp core is-installed --path="$WP_ROOT" --allow-root 2>/dev/null; then
   log "WordPress is installed, fetching admin and editor users..."
-  
-  # Get users with administrator or editor roles (fetch separately and combine)
-  WP_ADMINS=$(wp user list --role=administrator --fields=user_login,user_email,roles --format=csv --path="$WP_ROOT" --allow-root 2>/dev/null | tail -n +2)
-  WP_EDITORS=$(wp user list --role=editor --fields=user_login,user_email,roles --format=csv --path="$WP_ROOT" --allow-root 2>/dev/null | tail -n +2)
-  WP_USERS=$(printf "%s\n%s" "$WP_ADMINS" "$WP_EDITORS" | grep -v '^$')
+  WP_LOOKUP_ERROR=0
+
+  # Primary lookup: role-filtered queries
+  if WP_ADMINS_RAW=$(wp user list --role=administrator --fields=user_login,user_email,roles --format=csv --path="$WP_ROOT" --allow-root 2>&1); then
+    WP_ADMINS=$(echo "$WP_ADMINS_RAW" | tail -n +2)
+  else
+    WP_ADMINS=""
+    WP_LOOKUP_ERROR=1
+    log "$ERR_PREFIX Failed to query WordPress administrator users: $WP_ADMINS_RAW"
+  fi
+
+  if WP_EDITORS_RAW=$(wp user list --role=editor --fields=user_login,user_email,roles --format=csv --path="$WP_ROOT" --allow-root 2>&1); then
+    WP_EDITORS=$(echo "$WP_EDITORS_RAW" | tail -n +2)
+  else
+    WP_EDITORS=""
+    WP_LOOKUP_ERROR=1
+    log "$ERR_PREFIX Failed to query WordPress editor users: $WP_EDITORS_RAW"
+  fi
+
+  WP_USERS=$(printf "%s\n%s\n" "$WP_ADMINS" "$WP_EDITORS" | grep -v '^$' | sort -u)
+
+  # Fallback lookup: fetch all users and filter by role text
+  if [ -z "$WP_USERS" ]; then
+    log "Role-filtered lookup returned no users; trying fallback all-users query..."
+    if WP_ALL_USERS_RAW=$(wp user list --fields=user_login,user_email,roles --format=csv --path="$WP_ROOT" --allow-root 2>&1); then
+      WP_USERS=$(echo "$WP_ALL_USERS_RAW" | tail -n +2 | grep -Ei 'administrator|editor' || true)
+    else
+      WP_LOOKUP_ERROR=1
+      log "$ERR_PREFIX Failed fallback WordPress user query: $WP_ALL_USERS_RAW"
+    fi
+  fi
   
   if [ -n "$WP_USERS" ]; then
     # Format the users list for email
@@ -49,6 +75,19 @@ $(printf "%-20s %-30s %s\n" "--------------------" "----------------------------
 $(echo -e "$USER_LIST" | while IFS=$'\t' read -r login email role; do
   printf "%-20s %-30s %s\n" "$login" "$email" "$role"
 done)
+
+EOF
+)
+  elif [ "$WP_LOOKUP_ERROR" -eq 1 ]; then
+    WP_USERS_SECTION=$(cat <<EOF
+
+
+╔════════════════════════════════════════════════════════════╗
+║            WordPress Admin & Editor Users                  ║
+╚════════════════════════════════════════════════════════════╝
+
+WordPress user lookup failed during startup (likely temporary service readiness timing).
+Try again after startup settles: wp user list --path=$WP_ROOT --allow-root
 
 EOF
 )
