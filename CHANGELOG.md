@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.32] - 2026-02-16
+
 > **Commit Summary:** fix: make startup notification email resilient to SMTP timing and empty user query exits
 
 ### Added
@@ -26,6 +36,9 @@ Version format:
 - Startup email script now initializes environment before first log call and exits safely when SMTP never becomes ready.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
