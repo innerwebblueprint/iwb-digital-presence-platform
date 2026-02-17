@@ -97,6 +97,9 @@ fi
 
 # Optional notification email (only if container env provides these vars)
 if [ -n "${IWB_MAIL_USER:-}" ] && [ -n "${IWB_DOMAIN:-}" ] && command -v sendmail >/dev/null 2>&1; then
+  MAIL_FROM="${IWB_MAIL_USER}@${IWB_DOMAIN}"
+  MAIL_FROM_NAME="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+  MAIL_FROM_HEADER="${MAIL_FROM_NAME} <${MAIL_FROM}>"
   RENEWAL_DATE="$(date +"%Y-%m-%d %H:%M:%S %Z")"
   CERT_EXPIRY=""
   if [ -n "$CERT_FULLCHAIN" ]; then
@@ -105,7 +108,8 @@ if [ -n "${IWB_MAIL_USER:-}" ] && [ -n "${IWB_DOMAIN:-}" ] && command -v sendmai
 
   cat <<EOF | sendmail -t
 To: ${IWB_MAIL_USER}@${IWB_DOMAIN}
-From: admin@${IWB_DOMAIN}
+From: ${MAIL_FROM_HEADER}
+Reply-To: ${MAIL_FROM}
 Subject: SSL Certificate Renewed - ${IWB_DOMAIN}
 
 SSL Certificate Renewal Notification

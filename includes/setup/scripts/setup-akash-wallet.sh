@@ -196,6 +196,8 @@ send_wallet_notification() {
     done
     
     local mail_from="${IWB_MAIL_USER}@${IWB_DOMAIN}"
+    local mail_from_name="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+    local mail_from_header="${mail_from_name} <${mail_from}>"
     local mail_to="$mail_from"
     local subject="New Akash Deployment Wallet Created for ${IWB_DOMAIN}"
     
@@ -221,9 +223,15 @@ It is securely stored in your encrypted Storj backup.
 EOF
 )
     
-    echo -e "$body" | mail -s "$subject" -r "$mail_from" "$mail_to"
-    
-    if [ $? -eq 0 ]; then
+    if {
+        echo "To: $mail_to"
+        echo "From: $mail_from_header"
+        echo "Reply-To: $mail_from"
+        echo "Subject: $subject"
+        echo "Content-Type: text/plain; charset=UTF-8"
+        echo ""
+        echo "$body"
+    } | /usr/sbin/sendmail -t; then
         log "Successfully sent wallet notification email"
     else
         log "${ERR_PREFIX} Failed to send wallet notification email"
@@ -244,6 +252,8 @@ send_wallet_notification_existing() {
     done
     
     local mail_from="${IWB_MAIL_USER}@${IWB_DOMAIN}"
+    local mail_from_name="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+    local mail_from_header="${mail_from_name} <${mail_from}>"
     local mail_to="$mail_from"
     local subject="Akash Deployment Wallet Status for ${IWB_DOMAIN}"
     
@@ -269,9 +279,15 @@ It is securely stored in your encrypted Storj backup.
 EOF
 )
     
-    echo -e "$body" | mail -s "$subject" -r "$mail_from" "$mail_to"
-    
-    if [ $? -eq 0 ]; then
+    if {
+        echo "To: $mail_to"
+        echo "From: $mail_from_header"
+        echo "Reply-To: $mail_from"
+        echo "Subject: $subject"
+        echo "Content-Type: text/plain; charset=UTF-8"
+        echo ""
+        echo "$body"
+    } | /usr/sbin/sendmail -t; then
         log "Successfully sent existing wallet notification email"
     else
         log "${ERR_PREFIX} Failed to send existing wallet notification email"

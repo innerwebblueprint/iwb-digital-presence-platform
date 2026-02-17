@@ -3,13 +3,13 @@
 # Sends a notification email on every container startup/restart
 set -e
 
-log "Starting background startup notification email..."
-
 source /var/setup/scripts/setup-env.sh
 
 MODULE="STARTUP EMAIL"
 LOG_FILE="/var/log/iwb-email.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
+
+log "Starting background startup notification email..."
 
 sleep 10
 log "Preparing to send container startup notification email..."
@@ -38,7 +38,7 @@ if wp core is-installed --path="$WP_ROOT" --allow-root 2>/dev/null; then
     log "$ERR_PREFIX Failed to query WordPress editor users: $WP_EDITORS_RAW"
   fi
 
-  WP_USERS=$(printf "%s\n%s\n" "$WP_ADMINS" "$WP_EDITORS" | grep -v '^$' | sort -u)
+  WP_USERS=$(printf "%s\n%s\n" "$WP_ADMINS" "$WP_EDITORS" | grep -v '^$' | sort -u || true)
 
   # Fallback lookup: fetch all users and filter by role text
   if [ -z "$WP_USERS" ]; then
@@ -122,6 +122,8 @@ fi
 
 # Compose email
 MAIL_FROM="${IWB_MAIL_USER}@$IWB_DOMAIN"
+MAIL_FROM_NAME="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+MAIL_FROM_HEADER="${MAIL_FROM_NAME} <${MAIL_FROM}>"
 MAIL_TO="$MAIL_FROM"
 SUBJECT="Container Started - ${IWB_DOMAIN}"
 STARTUP_TIME=$(date +"%Y-%m-%d %H:%M:%S %Z")
@@ -184,18 +186,31 @@ Container Startup Notification System
 EOF
 )
 
+# Wait for postfix to become ready
+SMTP_WAIT_SECONDS=0
+until nc -z 127.0.0.1 25; do
+  SMTP_WAIT_SECONDS=$((SMTP_WAIT_SECONDS + 2))
+  if [ "$SMTP_WAIT_SECONDS" -ge 120 ]; then
+    log "$ERR_PREFIX Postfix not ready after ${SMTP_WAIT_SECONDS}s; skipping startup email send"
+    (return 0 2>/dev/null) || exit 0
+  fi
+  log "Waiting for postfix (port 25) before sending startup email..."
+  sleep 2
+done
+
 # Send email
-{
+if {
   echo "To: $MAIL_TO"
-  echo "From: $MAIL_FROM"
+  echo "From: $MAIL_FROM_HEADER"
+  echo "Reply-To: $MAIL_FROM"
   echo "Subject: $SUBJECT"
   echo "Content-Type: text/plain; charset=UTF-8"
   echo ""
   echo "$BODY"
-} | /usr/sbin/sendmail -t
-
-if [ $? -eq 0 ]; then
+} | /usr/sbin/sendmail -t; then
   log "Startup notification email queued successfully to $MAIL_TO"
 else
   log "$ERR_PREFIX Failed to queue startup notification email"
 fi
+
+(return 0 2>/dev/null) || exit 0

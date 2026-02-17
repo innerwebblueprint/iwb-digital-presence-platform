@@ -24,13 +24,15 @@ export IWB_WP_ADMIN_PASSWORD="$(< /tmp/wp-admin-pass.txt)"
 log "WordPress Admin: $IWB_WP_ADMIN_USER"
 log "Rspamd passwords loaded from state files"
 
-# Send credentials
-log "Queuing credentials email to $MAIL_FROM..."
-
 # Compose email with new user and password:
 MAIL_FROM="${IWB_MAIL_USER}@$IWB_DOMAIN"
+MAIL_FROM_NAME="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+MAIL_FROM_HEADER="${MAIL_FROM_NAME} <${MAIL_FROM}>"
 MAIL_TO="$MAIL_FROM"
 SUBJECT="Your IWB Digital Presence Platform credentials for ${IWB_DOMAIN}"
+
+# Send credentials
+log "Queuing credentials email to $MAIL_TO..."
 
 BODY=$(cat <<EOF
 Hello!
@@ -97,16 +99,19 @@ while ! nc -z 127.0.0.1 25; do
 done
 
 # --- Send email ---
-set -o pipefail
-
-# --- Send email ---
-echo -e "$BODY" | mail -s "$SUBJECT" -r "$MAIL_FROM" "$MAIL_TO"
-
-if [ $? -ne 0 ]; then
+if {
+  echo "To: $MAIL_TO"
+  echo "From: $MAIL_FROM_HEADER"
+  echo "Reply-To: $MAIL_FROM"
+  echo "Subject: $SUBJECT"
+  echo "Content-Type: text/plain; charset=UTF-8"
+  echo ""
+  echo "$BODY"
+} | /usr/sbin/sendmail -t; then
+  log "Credentials email sent to $IWB_MAIL_USER@$IWB_DOMAIN - includes WordPress admin & Rspamd web UI passwords"
+else
   log "$ERR_PREFIX Failed to send platform credentials email notification to $MAIL_TO"
   return 1
-else
-  log "Credentials email sent to $IWB_MAIL_USER@$IWB_DOMAIN - includes WordPress admin & Rspamd web UI passwords"
 fi
 
 (return 0 2>/dev/null) || exit 0

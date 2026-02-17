@@ -15,9 +15,15 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix: make startup notification email resilient to SMTP timing and empty user query exits
+
 ### Added
 ### Changed
+- Standardized notification sender identity across startup, credentials, DKIM, Akash wallet, and cert-renew emails to: `IWB 🔴🟢🔵 | Your Digital Presence Platform`.
 ### Fixed
+- Startup email sender now waits for local Postfix (`127.0.0.1:25`) before attempting `/usr/sbin/sendmail -t`.
+- Prevented premature script exit caused by `set -e` when role query output is empty during WordPress admin/editor list aggregation.
+- Startup email script now initializes environment before first log call and exits safely when SMTP never becomes ready.
 ### Removed
 ### Security
 
