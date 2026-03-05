@@ -4,7 +4,26 @@
 : "${IWB_DOMAIN:?IWB_DOMAIN not set}"
 : "${IWB_MAIL_USER:?IWB_MAIL_USER not set}"
 : "${IWB_MAIL_PASS:?IWB_MAIL_PASS not set}"
-: "${IWB_STORJ_WPOPS_BUCKET:?IWB_STORJ_WPOPS_BUCKET not set}"
+: "${IWB_PERSISTENT_STORAGE:=storj}"
+
+case "${IWB_PERSISTENT_STORAGE}" in
+  storj)
+    : "${IWB_STORJ_WPOPS_BUCKET:?IWB_STORJ_WPOPS_BUCKET not set}"
+    export IWB_STORAGE_BUCKET="${IWB_STORJ_WPOPS_BUCKET}"
+    ;;
+  r2)
+    : "${IWB_R2_ACCOUNT_ID:?IWB_R2_ACCOUNT_ID not set}"
+    : "${IWB_R2_ACCESS_KEY_ID:?IWB_R2_ACCESS_KEY_ID not set}"
+    : "${IWB_R2_SECRET_ACCESS_KEY:?IWB_R2_SECRET_ACCESS_KEY not set}"
+    : "${IWB_R2_BUCKET:?IWB_R2_BUCKET not set}"
+    : "${IWB_R2_REGION:=auto}"
+    export IWB_STORAGE_BUCKET="${IWB_R2_BUCKET}"
+    ;;
+  *)
+    echo "[IWB] ERROR Unsupported storage provider: '${IWB_PERSISTENT_STORAGE}'"
+    (return 1 2>/dev/null) || exit 1
+    ;;
+esac
 
 # Default module if not explicitly passed
 if [ -z "${MODULE}" ]; then
@@ -44,12 +63,21 @@ export IWB_MARIADB_PID_FILE="${IWB_STATE_DIR}/mariadb-setup.pid"
 # === Storj Backup Keys ===
 export IWB_PA_SQL_BACKUP_PATH="${IWB_BACKUP_DIR}/postfixadmin.sql"
 
-export IWB_STORJ_MAIL_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/backups/mail/${IWB_DOMAIN}_mail_backup.tar.gz"
+case "${IWB_PERSISTENT_STORAGE}" in
+  storj)
+    export IWB_STORAGE_URI_SCHEME="sj"
+    ;;
+  r2)
+    export IWB_STORAGE_URI_SCHEME="s3"
+    ;;
+esac
 
-export IWB_STORJ_PA_DB_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/mail/db/postfixadmin_${IWB_DOMAIN}.sql"
-export IWB_STORJ_MAIL_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/mail/email/${IWB_DOMAIN}_maildir.tar.gz"
-export IWB_STORJ_CERT_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/certs/${IWB_DOMAIN}_certs.tar.gz"
-export IWB_DKIM_CERT_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/certs/${IWB_DOMAIN}_dkim_certs.tar.gz"
+export IWB_STORJ_MAIL_BACKUP_KEY="${IWB_STORAGE_URI_SCHEME}://${IWB_STORAGE_BUCKET}/backups/mail/${IWB_DOMAIN}_mail_backup.tar.gz"
+
+export IWB_STORJ_PA_DB_KEY="${IWB_STORAGE_URI_SCHEME}://${IWB_STORAGE_BUCKET}/mail/db/postfixadmin_${IWB_DOMAIN}.sql"
+export IWB_STORJ_MAIL_KEY="${IWB_STORAGE_URI_SCHEME}://${IWB_STORAGE_BUCKET}/mail/email/${IWB_DOMAIN}_maildir.tar.gz"
+export IWB_STORJ_CERT_BACKUP_KEY="${IWB_STORAGE_URI_SCHEME}://${IWB_STORAGE_BUCKET}/certs/${IWB_DOMAIN}_certs.tar.gz"
+export IWB_DKIM_CERT_BACKUP_KEY="${IWB_STORAGE_URI_SCHEME}://${IWB_STORAGE_BUCKET}/certs/${IWB_DOMAIN}_dkim_certs.tar.gz"
 
 # === Database Admin ===
 # Generate password if not already set or no local state set

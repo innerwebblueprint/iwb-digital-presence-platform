@@ -12,7 +12,8 @@ LOG_FILE="/var/log/iwb-backup.log"
 
 # Load environment and functions
 source /var/setup/scripts/setup-env.sh
-source /var/setup/scripts/storage-providers/storj/storj-functions.sh
+source /var/setup/scripts/storage-providers/storage-router.sh
+source /var/setup/scripts/storage-providers/storage-functions.sh
 
 # Redirect all output of log function to both console and log file
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -265,20 +266,20 @@ ARCHIVE_FILE_PATH="${TMP_BACKUP_DIR}/${ARCHIVE_FILENAME}"
 log "Creating backup archive..."
 tar -czf "$ARCHIVE_FILE_PATH" -C "$BACKUP_SOURCE_DIR" .
 
-# --- Storj Upload (versioned and latest) ---
+# --- Cloud Upload (versioned and latest) ---
 
-REMOTE_KEY_VERSIONED="sj://${IWB_STORJ_WPOPS_BUCKET}/IWBDPP/${DATASET}/${INTERVAL}/${ARCHIVE_FILENAME}"
-REMOTE_KEY_LATEST="sj://${IWB_STORJ_WPOPS_BUCKET}/IWBDPP/${DATASET}/latest/${IWB_DOMAIN}_${DATASET}_latest.tar.gz"
+REMOTE_KEY_VERSIONED="$(storage_key_versioned "$DATASET" "$INTERVAL" "$ARCHIVE_FILENAME")"
+REMOTE_KEY_LATEST="$(storage_key_latest "$DATASET" "${IWB_DOMAIN}_${DATASET}_latest.tar.gz")"
 
-storj_upload_with_retry() {
+storage_upload_with_retry() {
     local file="$1"
     local key="$2"
     local attempts=0
     local success=false
 
     while [ $attempts -lt 3 ]; do
-        log "Uploading to Storj (attempt $((attempts + 1))): $key"
-        if storj_upload "$file" "$key"; then
+    log "Uploading to $(storage_provider_name) (attempt $((attempts + 1))): $key"
+    if storage_upload "$file" "$key"; then
             success=true
             break
         fi
@@ -287,13 +288,13 @@ storj_upload_with_retry() {
     done
 
     if [ "$success" != true ]; then
-        log "ERROR: Failed to upload $key after 3 attempts."
+      log "$ERR_PREFIX Failed to upload $key after 3 attempts."
         (return 1 2>/dev/null) || exit 1
     fi
 }
 
-storj_upload_with_retry "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_VERSIONED"
-storj_upload_with_retry "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_LATEST"
+  storage_upload_with_retry "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_VERSIONED"
+  storage_upload_with_retry "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_LATEST"
 
 
 # --- Cleanup ---

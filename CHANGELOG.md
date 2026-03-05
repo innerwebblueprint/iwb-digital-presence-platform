@@ -16,7 +16,25 @@ Version format:
 ## [Unreleased]
 
 ### Added
+- Provider-neutral storage abstraction script: `includes/setup/scripts/storage-providers/storage-functions.sh`.
+- Cloudflare R2 backend setup and operations scripts:
+  - `includes/setup/scripts/storage-providers/r2/r2-setup.sh`
+  - `includes/setup/scripts/storage-providers/r2/r2-functions.sh`
+- Storage migration utility with resume-state and verification:
+  - `includes/setup/scripts/storage-providers/migrate-storage.sh`
+- Startup symlink command for migration utility: `iwb-migrate-storage.sh`.
 ### Changed
+- Extended storage router to support `IWB_PERSISTENT_STORAGE=r2` alongside `storj`.
+- Refactored backup and restore runtime to use provider-neutral storage operations:
+  - `includes/setup/scripts/backup/iwb-backup.sh`
+  - `includes/setup/scripts/backup/iwb-restore.sh`
+- Refactored backup cleanup flow to use provider-neutral list/delete operations:
+  - `includes/setup/scripts/backup/iwb-backup-cleanup.sh`
+- Refactored Akash wallet backup upload path to use configured cloud provider instead of Storj-only logic.
+- Updated environment bootstrap logic to validate provider-specific variables and expose unified storage aliases.
+- Updated n8n minimal environment export to include provider-neutral storage variables while preserving legacy compatibility.
+- Updated environment template with Cloudflare R2 credential variables and provider option guidance.
+- Updated Docker image package install to include `aws-cli` for R2 S3-compatible operations.
 ### Fixed
 ### Removed
 ### Security

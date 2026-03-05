@@ -64,4 +64,14 @@ else
 fi
 }
 
+storj_list() {
+  local prefix="$1"
+  uplink ls "$prefix" | awk '/\.tar\.gz$/ {print $NF}'
+}
+
+storj_delete() {
+  local key="$1"
+  uplink rm "$key"
+}
+
 # End of storj-functions.sh

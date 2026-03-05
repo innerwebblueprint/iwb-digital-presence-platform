@@ -16,6 +16,7 @@ LOG_FILE="/var/log/iwb-backup-cleanup.log"
 # Load environment and storage provider
 source /var/setup/scripts/setup-env.sh
 source /var/setup/scripts/storage-providers/storage-router.sh
+source /var/setup/scripts/storage-providers/storage-functions.sh
 
 # Redirect all output to log
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -88,9 +89,10 @@ keep_for_interval() {
 
 # List objects in a prefix. Returns newline-separated object names (no path)
 list_objects() {
-  local prefix="$1"  # sj://bucket/path/
-  # Use long listing and grab the last field (object name). Filter .tar.gz
-  uplink ls "$prefix" | awk '/\.tar\.gz$/ {print $NF}'
+  local prefix="$1"
+  storage_list "$prefix" | while read -r obj; do
+    [[ -n "$obj" ]] && echo "${obj##*/}"
+  done
 }
 
 # Sort objects by name ascending (YYYY_MM_DD sorts correctly lexicographically)
@@ -103,7 +105,7 @@ delete_object() {
     log "DRY-RUN Would delete: $key"
     return 0
   fi
-  if uplink rm "$key"; then
+  if storage_delete "$key"; then
     log "Deleted: $key"
     return 0
   else
@@ -116,7 +118,7 @@ errors=0
 
 for ds in "${TARGET_DATASETS[@]}"; do
   for itv in "${TARGET_INTERVALS[@]}"; do
-    local_prefix="sj://${IWB_STORJ_WPOPS_BUCKET}/IWBDPP/${ds}/${itv}/"
+    local_prefix="$(storage_prefix "$ds" "$itv")"
 
     # Skip hourly by design (rotation via overwrites)
     if [[ "$itv" == "hourly" ]]; then

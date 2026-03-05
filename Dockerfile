@@ -57,7 +57,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install required packages
 # Core system utilities and setup tools
 RUN apk update && apk add --no-cache \
-    bash rsyslog curl nano coreutils iputils zip unzip wget supervisor cronie dnsmasq tree sudo jq bc netcat-openbsd
+    bash rsyslog curl nano coreutils iputils zip unzip wget supervisor cronie dnsmasq tree sudo jq bc netcat-openbsd aws-cli
 
 # Python & build tools
 RUN apk add --no-cache \

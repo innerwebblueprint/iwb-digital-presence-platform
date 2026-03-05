@@ -10,6 +10,8 @@ export AKASH_KEYRING_PASSPHRASE=""
 
 MODULE="AKASH WALLET"
 source /var/setup/scripts/setup-env.sh
+source /var/setup/scripts/storage-providers/storage-router.sh
+source /var/setup/scripts/storage-providers/storage-functions.sh
 
 log "Starting Akash wallet setup..."
 
@@ -105,23 +107,22 @@ create_new_akash_wallet() {
 }
 EOF
     
-    # Upload backup to Storj directly
-    log "Uploading backup to Storj..."
+    # Upload backup to configured provider
+    log "Uploading backup to $(storage_provider_name)..."
     local archive_basename="${IWB_DOMAIN}_akash_latest.tar.gz"
     local archive_path="/tmp/${archive_basename}"
-    local remote_key="sj://${IWB_STORJ_WPOPS_BUCKET}/IWBDPP/akash/latest/${archive_basename}"
+    local remote_key
+    remote_key="$(storage_key_latest "akash" "${archive_basename}")"
     
     # Create tar archive
     tar -czf "$archive_path" -C "$backup_dir" .
     
-    # Load storj functions and upload
-    source /var/setup/scripts/storage-providers/storj/storj-functions.sh
-    if storj_upload "$archive_path" "$remote_key"; then
-        log "Wallet backup uploaded successfully to Storj"
+    if storage_upload "$archive_path" "$remote_key"; then
+        log "Wallet backup uploaded successfully to $(storage_provider_name)"
         # Clean up local files
         rm -f "$archive_path" "$backup_file"
     else
-        log "${ERR_PREFIX} Failed to upload wallet backup to Storj"
+        log "${ERR_PREFIX} Failed to upload wallet backup to $(storage_provider_name)"
         rm -f "$archive_path" "$backup_file"
         return 1
     fi
@@ -212,12 +213,12 @@ Wallet Details:
 - Wallet Name: ${AKASH_WALLET_NAME}
 - Network: Akash Network (akashnet-2)
 
-The wallet has been securely backed up to your Storj storage and removed from the local system for security.
+The wallet has been securely backed up to your configured cloud storage and removed from the local system for security.
 
 To fund this wallet for deployments, send AKT tokens to the public address above.
 
 Note: The private key/mnemonic is NOT included in this email for security reasons. 
-It is securely stored in your encrypted Storj backup.
+It is securely stored in your encrypted cloud backup.
 
 – Your IWB Server 🌐
 EOF
@@ -268,12 +269,12 @@ Wallet Details:
 - Wallet Name: ${AKASH_WALLET_NAME}
 - Network: Akash Network (akashnet-2)
 
-This wallet was restored from your secure Storj backup and is ready for deployments.
+This wallet was restored from your secure cloud backup and is ready for deployments.
 
 To fund this wallet for deployments, send AKT tokens to the public address above.
 
 Note: The private key/mnemonic is NOT included in this email for security reasons. 
-It is securely stored in your encrypted Storj backup.
+It is securely stored in your encrypted cloud backup.
 
 – Your IWB Server 🌐
 EOF
