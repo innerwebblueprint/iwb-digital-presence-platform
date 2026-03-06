@@ -24,8 +24,92 @@ else
   DHPARAM_RESTORED=true
 fi
 
+should_use_self_signed=false
+if [ "${IWB_LOCAL_DEV}" = "true" ] || [ "${IWB_SSL_SELF_SIGNED_FALLBACK}" = "true" ]; then
+  should_use_self_signed=true
+fi
+
+generate_self_signed_certs() {
+  local cert_root="/etc/letsencrypt"
+  local live_dir="${cert_root}/live/${IWB_DOMAIN}"
+  local archive_dir="${cert_root}/archive/${IWB_DOMAIN}"
+  local key_file="${live_dir}/privkey.pem"
+  local cert_file="${live_dir}/fullchain.pem"
+  local chain_file="${live_dir}/chain.pem"
+  local options_file="${cert_root}/options-ssl-nginx.conf"
+  local dhparam_file="${cert_root}/ssl-dhparams.pem"
+  local san_list
+
+  san_list="DNS:${IWB_DOMAIN}"
+  for d in "${IWB_SSL_DOMAINS[@]}"; do
+    if [ "$d" != "$IWB_DOMAIN" ]; then
+      san_list="${san_list},DNS:${d}"
+    fi
+  done
+
+  mkdir -p "${live_dir}" "${archive_dir}" "${cert_root}/renewal"
+
+  log "Generating self-signed certificate for local development..."
+  if ! openssl req -x509 -nodes -newkey rsa:2048 \
+      -days 365 \
+      -subj "/CN=${IWB_DOMAIN}" \
+      -addext "subjectAltName=${san_list}" \
+      -keyout "${key_file}" \
+      -out "${cert_file}" >/dev/null 2>&1; then
+    log "$ERR_PREFIX Failed generating self-signed certificate."
+    return 1
+  fi
+
+  cp -f "${cert_file}" "${chain_file}"
+  cp -f "${cert_file}" "${archive_dir}/fullchain1.pem"
+  cp -f "${chain_file}" "${archive_dir}/chain1.pem"
+  cp -f "${key_file}" "${archive_dir}/privkey1.pem"
+
+  cat > "${options_file}" <<'EOF'
+ssl_session_cache shared:le_nginx_SSL:10m;
+ssl_session_timeout 1440m;
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers off;
+ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384";
+ssl_ecdh_curve X25519:prime256v1:secp384r1;
+ssl_stapling off;
+ssl_stapling_verify off;
+EOF
+
+  if [ ! -f "${dhparam_file}" ]; then
+    log "Generating local-only dhparam (1024-bit) for self-signed TLS setup..."
+    if ! openssl dhparam -out "${dhparam_file}" 1024 >/dev/null 2>&1; then
+      log "$ERR_PREFIX Failed generating dhparam file for self-signed TLS setup."
+      return 1
+    fi
+  fi
+
+  cat > "${cert_root}/renewal/${IWB_DOMAIN}.conf" <<EOF
+version = 2.0.0
+archive_dir = ${archive_dir}
+cert = ${cert_file}
+privkey = ${key_file}
+chain = ${chain_file}
+fullchain = ${cert_file}
+
+[renewalparams]
+authenticator = nginx
+server = https://acme-v02.api.letsencrypt.org/directory
+EOF
+
+  CERTS_RESTORED=true
+  DHPARAM_RESTORED=true
+  log "Self-signed certificates generated for local development mode."
+  return 0
+}
+
 # === Request certificates if needed ===
 if [ "$CERTS_RESTORED" != true ]; then
+  if [ "$should_use_self_signed" = true ]; then
+    if ! generate_self_signed_certs; then
+      return 1
+    fi
+  else
   echo -e "$IWB_PREFIX Starting temporary Nginx for HTTP-01 challenge..."
 
   echo -e "${IWB_PREFIX} Configuring Nginx site templates..."
@@ -90,6 +174,7 @@ if [ "$CERTS_RESTORED" != true ]; then
   echo -e "$IWB_PREFIX Stopping temporary Nginx..."
   kill "$NGINX_TEMP_PID"
   sleep 1
+  fi
 fi
 
 # === Backup to cloud ===

@@ -5,6 +5,8 @@
 : "${IWB_MAIL_USER:?IWB_MAIL_USER not set}"
 : "${IWB_MAIL_PASS:?IWB_MAIL_PASS not set}"
 : "${IWB_PERSISTENT_STORAGE:=storj}"
+: "${IWB_LOCAL_DEV:=false}"
+: "${IWB_SSL_SELF_SIGNED_FALLBACK:=false}"
 
 case "${IWB_PERSISTENT_STORAGE}" in
   storj)

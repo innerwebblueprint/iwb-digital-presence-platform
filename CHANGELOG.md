@@ -35,6 +35,8 @@ Version format:
 - Updated n8n minimal environment export to include provider-neutral storage variables while preserving legacy compatibility.
 - Updated environment template with Cloudflare R2 credential variables and provider option guidance.
 - Updated Docker image package install to include `aws-cli` for R2 S3-compatible operations.
+- Added local development SSL fallback controls (`IWB_LOCAL_DEV`, `IWB_SSL_SELF_SIGNED_FALLBACK`) and self-signed certificate generation path when cloud cert restore fails.
+- Added feature-scoped Docker build tagging option (`--feature-tag`) to avoid overwriting `dev-latest` during branch testing.
 ### Fixed
 ### Removed
 ### Security

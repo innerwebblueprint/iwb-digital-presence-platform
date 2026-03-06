@@ -9,6 +9,7 @@
 #   --no-cache    Build without cache
 #   --skip-push   Build only, don't push to Docker Hub
 #   --platform    Specify platform (e.g., linux/amd64,linux/arm64)
+#   --feature-tag Build feature-scoped tags (e.g., dual-storj-r2-migration)
 #
 # This script:
 #   1. Reads version from VERSION file
@@ -28,6 +29,7 @@ DOCKER_REPO="iwbp/iwbdpp"
 NO_CACHE=""
 SKIP_PUSH=false
 PLATFORM=""
+FEATURE_TAG=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -41,6 +43,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --platform)
             PLATFORM="--platform $2"
+            shift 2
+            ;;
+        --feature-tag)
+            FEATURE_TAG="$2"
             shift 2
             ;;
         *)
@@ -79,20 +85,48 @@ fi
 VERSION=$(cat "$VERSION_FILE" | tr -d '[:space:]')
 log "Building version: $VERSION"
 
+sanitize_feature_tag() {
+    local raw="$1"
+    local sanitized
+    sanitized=$(echo "$raw" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/--+/-/g')
+    echo "$sanitized"
+}
+
+FEATURE_TAG_SANITIZED=""
+if [ -n "$FEATURE_TAG" ]; then
+    FEATURE_TAG_SANITIZED=$(sanitize_feature_tag "$FEATURE_TAG")
+    if [ -z "$FEATURE_TAG_SANITIZED" ]; then
+        error "Invalid --feature-tag value after sanitization: '$FEATURE_TAG'"
+    fi
+    info "Feature tag mode enabled: $FEATURE_TAG_SANITIZED"
+fi
+
 # Determine tags based on version type
 TAGS=()
 
 if [[ $VERSION =~ ^dev-b([0-9]+)$ ]]; then
     # Development build (legacy format)
-    TAGS+=("-t" "$DOCKER_REPO:$VERSION")
-    TAGS+=("-t" "$DOCKER_REPO:dev-latest")
-    log "Development build detected (legacy format)"
+    if [ -n "$FEATURE_TAG_SANITIZED" ]; then
+        TAGS+=("-t" "$DOCKER_REPO:feature-${FEATURE_TAG_SANITIZED}-${VERSION}")
+        TAGS+=("-t" "$DOCKER_REPO:feature-${FEATURE_TAG_SANITIZED}-latest")
+        log "Feature development build detected (legacy format)"
+    else
+        TAGS+=("-t" "$DOCKER_REPO:$VERSION")
+        TAGS+=("-t" "$DOCKER_REPO:dev-latest")
+        log "Development build detected (legacy format)"
+    fi
     
 elif [[ $VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)-dev\.([0-9]+)$ ]]; then
     # Development build (semver format: v1.0.0-dev.11)
-    TAGS+=("-t" "$DOCKER_REPO:$VERSION")
-    TAGS+=("-t" "$DOCKER_REPO:dev-latest")
-    log "Development build detected (semver dev)"
+    if [ -n "$FEATURE_TAG_SANITIZED" ]; then
+        TAGS+=("-t" "$DOCKER_REPO:feature-${FEATURE_TAG_SANITIZED}-${VERSION}")
+        TAGS+=("-t" "$DOCKER_REPO:feature-${FEATURE_TAG_SANITIZED}-latest")
+        log "Feature development build detected (semver dev)"
+    else
+        TAGS+=("-t" "$DOCKER_REPO:$VERSION")
+        TAGS+=("-t" "$DOCKER_REPO:dev-latest")
+        log "Development build detected (semver dev)"
+    fi
     
 elif [[ $VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
     # Production release
