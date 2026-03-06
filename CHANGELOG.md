@@ -38,6 +38,7 @@ Version format:
 - Added local development SSL fallback controls (`IWB_LOCAL_DEV`, `IWB_SSL_SELF_SIGNED_FALLBACK`) and self-signed certificate generation path when cloud cert restore fails.
 - Added feature-scoped Docker build tagging option (`--feature-tag`) to avoid overwriting `dev-latest` during branch testing.
 ### Fixed
+- Local self-signed TLS fallback now generates/validates `ssl-dhparams.pem` at modern strength (>=2048-bit) to prevent Nginx startup failure with `dh key too small`.
 ### Removed
 ### Security
 

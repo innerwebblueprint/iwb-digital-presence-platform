@@ -39,6 +39,7 @@ generate_self_signed_certs() {
   local options_file="${cert_root}/options-ssl-nginx.conf"
   local dhparam_file="${cert_root}/ssl-dhparams.pem"
   local san_list
+  local regenerate_dhparam=false
 
   san_list="DNS:${IWB_DOMAIN}"
   for d in "${IWB_SSL_DOMAINS[@]}"; do
@@ -76,9 +77,18 @@ ssl_stapling off;
 ssl_stapling_verify off;
 EOF
 
-  if [ ! -f "${dhparam_file}" ]; then
-    log "Generating local-only dhparam (1024-bit) for self-signed TLS setup..."
-    if ! openssl dhparam -out "${dhparam_file}" 1024 >/dev/null 2>&1; then
+  if [ -f "${dhparam_file}" ]; then
+    if ! openssl dhparam -in "${dhparam_file}" -text -noout 2>/dev/null | grep -q "(2048 bit)\|(3072 bit)\|(4096 bit)"; then
+      log "Existing dhparam is too small for modern TLS security defaults. Regenerating..."
+      regenerate_dhparam=true
+    fi
+  else
+    regenerate_dhparam=true
+  fi
+
+  if [ "${regenerate_dhparam}" = true ]; then
+    log "Generating dhparam (2048-bit) for self-signed TLS setup..."
+    if ! openssl dhparam -out "${dhparam_file}" 2048 >/dev/null 2>&1; then
       log "$ERR_PREFIX Failed generating dhparam file for self-signed TLS setup."
       return 1
     fi
