@@ -45,6 +45,7 @@ Version format:
 - Cert domain selection now automatically skips `<project>media.<domain>` when `IWB_PERSISTENT_STORAGE=r2` and `IWB_R2_MEDIA_PUBLIC_BASE_URL` is explicitly set (non-empty), avoiding ACME conflicts with externally managed media TLS.
 ### Fixed
 - Local self-signed TLS fallback now generates/validates `ssl-dhparams.pem` at modern strength (>=2048-bit) to prevent Nginx startup failure with `dh key too small`.
+- SSL cert issuance now retries once when certbot hits transient ACME `No such authorization` errors, and logs the requested domain set for easier troubleshooting.
 ### Removed
 ### Security
 

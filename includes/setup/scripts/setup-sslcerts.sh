@@ -176,15 +176,36 @@ if [ "$CERTS_RESTORED" != true ]; then
     DOMAIN_ARGS+=("-d" "$d")
   done
 
-  if certbot certonly --nginx -n --agree-tos \
+  log "Certbot domain set: ${IWB_SSL_DOMAINS[*]}"
+
+  run_certbot_request() {
+    certbot certonly --nginx -n --agree-tos \
       --email "$IWB_MAIL_USER@$IWB_DOMAIN" \
-      "${DOMAIN_ARGS[@]}"; then
+      "${DOMAIN_ARGS[@]}"
+  }
+
+  if run_certbot_request; then
     echo -e "$IWB_PREFIX Certificate issued successfully."
     CERTS_RESTORED=new
   else
-    echo -e "$IWB_PREFIX $ERR_PREFIX Certbot failed to obtain certificates."
-    kill "$NGINX_TEMP_PID"
-    return 1
+    if [ -f /var/log/letsencrypt/letsencrypt.log ] && grep -q "No such authorization" /var/log/letsencrypt/letsencrypt.log; then
+      log "$ERR_PREFIX Certbot returned transient ACME error 'No such authorization'. Retrying once in 5 seconds..."
+      sleep 5
+      if run_certbot_request; then
+        echo -e "$IWB_PREFIX Certificate issued successfully on retry."
+        CERTS_RESTORED=new
+      else
+        echo -e "$IWB_PREFIX $ERR_PREFIX Certbot failed to obtain certificates after retry."
+        [ -f /var/log/letsencrypt/letsencrypt.log ] && tail -n 40 /var/log/letsencrypt/letsencrypt.log || true
+        kill "$NGINX_TEMP_PID"
+        return 1
+      fi
+    else
+      echo -e "$IWB_PREFIX $ERR_PREFIX Certbot failed to obtain certificates."
+      [ -f /var/log/letsencrypt/letsencrypt.log ] && tail -n 40 /var/log/letsencrypt/letsencrypt.log || true
+      kill "$NGINX_TEMP_PID"
+      return 1
+    fi
   fi
 
   echo -e "$IWB_PREFIX Stopping temporary Nginx..."
