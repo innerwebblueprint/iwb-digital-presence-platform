@@ -37,6 +37,8 @@ Version format:
 - Updated Docker image package install to include `aws-cli` for R2 S3-compatible operations.
 - Added local development SSL fallback controls (`IWB_LOCAL_DEV`, `IWB_SSL_SELF_SIGNED_FALLBACK`) and self-signed certificate generation path when cloud cert restore fails.
 - Added feature-scoped Docker build tagging option (`--feature-tag`) to avoid overwriting `dev-latest` during branch testing.
+- Media reverse proxy configuration is now provider-neutral, with endpoint/host variables supporting both Storj and Cloudflare R2 media URL patterns.
+- Added dedicated `IWB_R2_MEDIA_BUCKET` support so R2 media proxy defaults can target a separate media bucket from backup/storage buckets.
 ### Fixed
 - Local self-signed TLS fallback now generates/validates `ssl-dhparams.pem` at modern strength (>=2048-bit) to prevent Nginx startup failure with `dh key too small`.
 ### Removed

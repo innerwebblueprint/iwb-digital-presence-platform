@@ -11,21 +11,36 @@
 case "${IWB_PERSISTENT_STORAGE}" in
   storj)
     : "${IWB_STORJ_WPOPS_BUCKET:?IWB_STORJ_WPOPS_BUCKET not set}"
+    : "${IWB_STORJ_MEDIA_BUCKET:=${COMPOSE_PROJECT_NAME}media}"
     export IWB_STORAGE_BUCKET="${IWB_STORJ_WPOPS_BUCKET}"
+    : "${IWB_MEDIA_PROXY_BASE_URL:=http://link.storjshare.io/raw/${IWB_STORJ_MEDIA_KEY}/${IWB_STORJ_MEDIA_BUCKET}}"
     ;;
   r2)
     : "${IWB_R2_ACCOUNT_ID:?IWB_R2_ACCOUNT_ID not set}"
     : "${IWB_R2_ACCESS_KEY_ID:?IWB_R2_ACCESS_KEY_ID not set}"
     : "${IWB_R2_SECRET_ACCESS_KEY:?IWB_R2_SECRET_ACCESS_KEY not set}"
     : "${IWB_R2_BUCKET:?IWB_R2_BUCKET not set}"
+    : "${IWB_R2_MEDIA_BUCKET:=${IWB_R2_BUCKET}}"
     : "${IWB_R2_REGION:=auto}"
+    : "${IWB_R2_MEDIA_PUBLIC_BASE_URL:=https://${IWB_R2_MEDIA_BUCKET}.${IWB_R2_ACCOUNT_ID}.r2.cloudflarestorage.com}"
     export IWB_STORAGE_BUCKET="${IWB_R2_BUCKET}"
+    : "${IWB_MEDIA_PROXY_BASE_URL:=${IWB_R2_MEDIA_PUBLIC_BASE_URL}}"
     ;;
   *)
     echo "[IWB] ERROR Unsupported storage provider: '${IWB_PERSISTENT_STORAGE}'"
     (return 1 2>/dev/null) || exit 1
     ;;
 esac
+
+if [[ "${IWB_MEDIA_PROXY_BASE_URL}" =~ ^[A-Za-z][A-Za-z0-9+.-]*://([^/]+) ]]; then
+  IWB_MEDIA_PROXY_BASE_HOST="${BASH_REMATCH[1]}"
+else
+  IWB_MEDIA_PROXY_BASE_HOST=""
+fi
+
+: "${IWB_MEDIA_PROXY_HOST:=${IWB_MEDIA_PROXY_BASE_HOST}}"
+export IWB_MEDIA_PROXY_BASE_URL
+export IWB_MEDIA_PROXY_HOST
 
 # Default module if not explicitly passed
 if [ -z "${MODULE}" ]; then
