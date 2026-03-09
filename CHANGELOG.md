@@ -46,6 +46,7 @@ Version format:
 ### Fixed
 - Local self-signed TLS fallback now generates/validates `ssl-dhparams.pem` at modern strength (>=2048-bit) to prevent Nginx startup failure with `dh key too small`.
 - SSL cert issuance now retries once when certbot hits transient ACME `No such authorization` errors, and logs the requested domain set for easier troubleshooting.
+- Mail auth bootstrap now treats blank/comment placeholder password env values as empty before auto-generation, preventing Dovecot SQL auth from using `password=#...` and failing with `using password: NO`.
 ### Removed
 ### Security
 

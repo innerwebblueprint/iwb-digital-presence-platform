@@ -8,6 +8,26 @@
 : "${IWB_LOCAL_DEV:=false}"
 : "${IWB_SSL_SELF_SIGNED_FALLBACK:=false}"
 
+normalize_autogen_env_var() {
+  local var_name="$1"
+  local current_value="${!var_name-}"
+  local trimmed
+
+  trimmed="$(printf '%s' "${current_value}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
+  if [ -z "${trimmed}" ] || [[ "${trimmed}" == \#* ]]; then
+    export "${var_name}="
+  else
+    export "${var_name}=${trimmed}"
+  fi
+}
+
+normalize_autogen_env_var IWB_MYSQL_ROOT_PASSWORD
+normalize_autogen_env_var IWB_POSTFIXADMIN_SQL_PASSWORD
+normalize_autogen_env_var IWB_WP_MYSQL_PASSWORD
+normalize_autogen_env_var IWB_RSPAMD_CONTROLLER_PASSWORD
+normalize_autogen_env_var IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD
+
 IWB_R2_MEDIA_PUBLIC_BASE_URL_FROM_ENV="${IWB_R2_MEDIA_PUBLIC_BASE_URL-}"
 if [ -n "${IWB_R2_MEDIA_PUBLIC_BASE_URL_FROM_ENV}" ]; then
   export IWB_R2_MEDIA_PUBLIC_BASE_URL_EXPLICIT=true
