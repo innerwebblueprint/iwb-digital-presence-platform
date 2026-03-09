@@ -40,6 +40,7 @@ Version format:
 - Media reverse proxy configuration is now provider-neutral, with endpoint/host variables supporting both Storj and Cloudflare R2 media URL patterns.
 - Added dedicated `IWB_R2_MEDIA_BUCKET` support so R2 media proxy defaults can target a separate media bucket from backup/storage buckets.
 - Added explicit Storj/R2 media public base URL env parity (`IWB_STORJ_MEDIA_PUBLIC_BASE_URL`, `IWB_R2_MEDIA_PUBLIC_BASE_URL`) for consistent configuration across providers.
+- Updated `env.template` with prebuilt Storj/R2 media URL examples while keeping override variables blank by default so runtime auto-derivation remains the default behavior.
 ### Fixed
 - Local self-signed TLS fallback now generates/validates `ssl-dhparams.pem` at modern strength (>=2048-bit) to prevent Nginx startup failure with `dh key too small`.
 ### Removed
