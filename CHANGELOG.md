@@ -42,6 +42,7 @@ Version format:
 - Added explicit Storj/R2 media public base URL env parity (`IWB_STORJ_MEDIA_PUBLIC_BASE_URL`, `IWB_R2_MEDIA_PUBLIC_BASE_URL`) for consistent configuration across providers.
 - Updated `env.template` with prebuilt Storj/R2 media URL examples while keeping override variables blank by default so runtime auto-derivation remains the default behavior.
 - Local mode (`IWB_LOCAL_DEV=true`) now disables IWB automated cron schedule setup and removes existing IWB cron entries to prevent local instances from running backup/cleanup schedules.
+- Cert domain selection now automatically skips `<project>media.<domain>` when `IWB_PERSISTENT_STORAGE=r2` and `IWB_R2_MEDIA_PUBLIC_BASE_URL` is explicitly set (non-empty), avoiding ACME conflicts with externally managed media TLS.
 ### Fixed
 - Local self-signed TLS fallback now generates/validates `ssl-dhparams.pem` at modern strength (>=2048-bit) to prevent Nginx startup failure with `dh key too small`.
 ### Removed

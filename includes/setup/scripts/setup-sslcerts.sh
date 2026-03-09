@@ -12,8 +12,14 @@ IWB_SSL_DOMAINS=(
   "mail.$IWB_DOMAIN"
   "webmail.$IWB_DOMAIN"
   "n8n.$IWB_DOMAIN"
-  "${COMPOSE_PROJECT_NAME}media.${IWB_DOMAIN}"
 )
+
+MEDIA_SUBDOMAIN="${COMPOSE_PROJECT_NAME}media.${IWB_DOMAIN}"
+if [ "${IWB_PERSISTENT_STORAGE}" = "r2" ] && [ "${IWB_R2_MEDIA_PUBLIC_BASE_URL_EXPLICIT:-false}" = "true" ]; then
+  log "Skipping cert request for media subdomain (${MEDIA_SUBDOMAIN}) because IWB_R2_MEDIA_PUBLIC_BASE_URL is explicitly set"
+else
+  IWB_SSL_DOMAINS+=("${MEDIA_SUBDOMAIN}")
+fi
 
 log "Attempting to restore certs from cloud"
 
