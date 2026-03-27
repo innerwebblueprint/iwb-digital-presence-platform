@@ -16,6 +16,7 @@ Version format:
 ## [Unreleased]
 ### Added
 ### Changed
+- Increased WordPress upload ceiling to `350M` by aligning Nginx `client_max_body_size` and PHP `upload_max_filesize`/`post_max_size` limits.
 ### Fixed
 ### Removed
 ### Security

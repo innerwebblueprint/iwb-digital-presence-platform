@@ -21,7 +21,7 @@ server {
     access_log /var/log/nginx/{{IWB_DOMAIN}}_ssl_access.log;
     error_log /var/log/nginx/{{IWB_DOMAIN}}_ssl_error.log;
 
-    client_max_body_size 64M;
+    client_max_body_size 350M;
 
     # Main WordPress rule
     location / {
