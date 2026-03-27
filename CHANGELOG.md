@@ -16,6 +16,18 @@ Version format:
 ## [Unreleased]
 
 ### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.33] - 2026-03-27
+
+> **Commit Summary:** feat: add provider-neutral storage with cloudflare r2 support
+
+### Added
 - Provider-neutral storage abstraction script: `includes/setup/scripts/storage-providers/storage-functions.sh`.
 - Cloudflare R2 backend setup and operations scripts:
   - `includes/setup/scripts/storage-providers/r2/r2-setup.sh`
