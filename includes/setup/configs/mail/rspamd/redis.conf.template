@@ -1,0 +1,6 @@
+# includes/setup/configs/mail/rspamd/redis.conf.template
+
+# This is a rendered file for domain {{IWB_DOMAIN}}
+# Please do not edit here, this template is built into the docker container
+
+servers = "127.0.0.1";

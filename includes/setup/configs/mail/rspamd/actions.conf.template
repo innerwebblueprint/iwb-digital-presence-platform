@@ -1,0 +1,10 @@
+# includes/setup/configs/mail/rspamd/actions.conf.template
+
+# This is a rendered file for domain {{IWB_DOMAIN}}
+# Please do not edit here, this template is built into the docker container
+
+# Action thresholds tuned for stronger server-side filtering while avoiding overly
+# aggressive hard rejects.
+reject = 8;
+add_header = 4;
+greylist = 2;

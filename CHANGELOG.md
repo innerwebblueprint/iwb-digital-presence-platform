@@ -15,9 +15,19 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** feat: add default rspamd anti-spam tuning templates and setup wiring
+
 ### Added
+- New Rspamd local config templates for stronger server-side spam mitigation:
+  - `includes/setup/configs/mail/rspamd/actions.conf.template`
+  - `includes/setup/configs/mail/rspamd/settings.conf.template`
+  - `includes/setup/configs/mail/rspamd/redis.conf.template`
+  - `includes/setup/configs/mail/rspamd/greylist.conf.template`
+  - `includes/setup/configs/mail/rspamd/classifier-bayes.conf.template`
 ### Changed
+- `includes/setup/scripts/setup-rspamd.sh` now renders and symlinks Rspamd local overrides for actions, recipient-scoped settings, Redis, greylisting, and Bayes classifier Redis server binding.
 ### Fixed
+- Default Rspamd bootstrap now includes explicit local Redis and greylist configuration templates to reduce "module enabled but unconfigured" drift across deployments.
 ### Removed
 ### Security
 

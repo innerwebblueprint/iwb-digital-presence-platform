@@ -1,0 +1,7 @@
+# includes/setup/configs/mail/rspamd/classifier-bayes.conf.template
+
+# This is a rendered file for domain {{IWB_DOMAIN}}
+# Please do not edit here, this template is built into the docker container
+
+# Keep this minimal for compatibility across Rspamd package versions.
+servers = "127.0.0.1";
