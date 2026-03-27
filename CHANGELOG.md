@@ -22,6 +22,21 @@ Version format:
 
 ---
 
+## [v1.0.0-dev.36] - 2026-03-27
+
+> **Commit Summary:** fix(build): keep akash latest mode resilient with auto-fallback to newest buildable release
+
+### Added
+### Changed
+- Akash source build now keeps `AKASH_VERSION=latest` semantics while automatically scanning recent non-prerelease provider tags and compiling the newest tag that builds successfully.
+- Akash builder now uses upstream-aligned build tags (`osusergo,netgo,muslc,gcc`) and records the resolved compiled tag in `/build/provider-services.version`.
+### Fixed
+- Docker builds no longer hard-fail when the newest Akash release tag is temporarily unbuildable upstream; build flow now degrades gracefully to the next buildable recent release.
+### Removed
+### Security
+
+---
+
 ## [v1.0.0-dev.35] - 2026-03-27
 
 > **Commit Summary:** fix(build): stabilize akash source build and raise wordpress upload limit

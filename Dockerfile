@@ -3,25 +3,44 @@
 # Stage 1: Build Akash provider-services binary
 FROM golang:1.25-alpine AS akash-builder
 ARG AKASH_VERSION=latest
+ARG AKASH_RELEASE_SCAN_LIMIT=8
 RUN apk add --no-cache git curl jq
+ENV PATH="/usr/local/go/bin:${PATH}"
 WORKDIR /build
-RUN if [ "$AKASH_VERSION" = "latest" ]; then \
-        AKASH_VERSION=$(curl -fsSL https://api.github.com/repos/akash-network/provider/releases/latest | jq -r '.tag_name'); \
-    fi && \
-    test -n "$AKASH_VERSION" && \
-    echo "Building Akash provider-services ${AKASH_VERSION}..." && \
-    git clone --depth 1 --branch ${AKASH_VERSION} https://github.com/akash-network/provider.git && \
-    cd provider && \
-    GOTOOLCHAIN=auto CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN set -e; \
+    if [ "$AKASH_VERSION" = "latest" ]; then \
+    CANDIDATE_TAGS=$(curl -fsSL https://api.github.com/repos/akash-network/provider/releases \
+    | jq -r --argjson limit "$AKASH_RELEASE_SCAN_LIMIT" '[.[] | select(.draft == false and .prerelease == false) | .tag_name] | .[0:$limit] | .[]'); \
+    else \
+    CANDIDATE_TAGS="$AKASH_VERSION"; \
+    fi; \
+    test -n "$CANDIDATE_TAGS"; \
+    BUILT_VERSION=""; \
+    for tag in $CANDIDATE_TAGS; do \
+    echo "Attempting Akash provider-services source build for ${tag}..."; \
+    rm -rf /build/provider; \
+    if ! git clone --depth 1 --branch "$tag" https://github.com/akash-network/provider.git /build/provider; then \
+    echo "Skipping ${tag}: source checkout failed"; \
+    continue; \
+    fi; \
+    if (cd /build/provider && \
+    GOTOOLCHAIN=local CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -mod=readonly \
-    -tags "osusergo,netgo,static_build" \
+    -tags "osusergo,netgo,muslc,gcc" \
     -ldflags="-s -w \
     -X github.com/akash-network/provider/version.Name=provider-services \
     -X github.com/akash-network/provider/version.AppName=provider-services \
-    -X github.com/akash-network/provider/version.Version=${AKASH_VERSION}" \
+    -X github.com/akash-network/provider/version.Version=${tag}" \
     -o /build/provider-services \
-    ./cmd/provider-services && \
-    echo "✓ provider-services ${AKASH_VERSION} compiled successfully"
+    ./cmd/provider-services); then \
+    BUILT_VERSION="$tag"; \
+    break; \
+    fi; \
+    echo "Build failed for ${tag}, trying next candidate..."; \
+    done; \
+    test -n "$BUILT_VERSION"; \
+    echo "$BUILT_VERSION" > /build/provider-services.version; \
+    echo "✓ provider-services ${BUILT_VERSION} compiled successfully"
 
 # Stage 2: Build Pigeonhole with unfinished extensions (for ereject support)
 FROM alpine:3.21 AS pigeonhole-builder
