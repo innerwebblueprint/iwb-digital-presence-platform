@@ -14,6 +14,15 @@ Version format:
 - `-dev.N`: Pre-release development build number
 
 ## [Unreleased]
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.34] - 2026-03-27
 
 > **Commit Summary:** feat: add default rspamd anti-spam tuning templates and setup wiring
 
