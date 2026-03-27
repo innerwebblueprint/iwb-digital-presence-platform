@@ -1,10 +1,14 @@
 # syntax=docker/dockerfile:1
 
 # Stage 1: Build Akash provider-services binary
-FROM golang:1.23-alpine AS akash-builder
-RUN apk add --no-cache git curl
+FROM golang:1.25-alpine AS akash-builder
+ARG AKASH_VERSION=latest
+RUN apk add --no-cache git curl jq
 WORKDIR /build
-RUN AKASH_VERSION=$(curl -s https://api.github.com/repos/akash-network/provider/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4) && \
+RUN if [ "$AKASH_VERSION" = "latest" ]; then \
+        AKASH_VERSION=$(curl -fsSL https://api.github.com/repos/akash-network/provider/releases/latest | jq -r '.tag_name'); \
+    fi && \
+    test -n "$AKASH_VERSION" && \
     echo "Building Akash provider-services ${AKASH_VERSION}..." && \
     git clone --depth 1 --branch ${AKASH_VERSION} https://github.com/akash-network/provider.git && \
     cd provider && \

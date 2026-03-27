@@ -16,7 +16,20 @@ Version format:
 ## [Unreleased]
 ### Added
 ### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.35] - 2026-03-27
+
+> **Commit Summary:** fix(build): stabilize akash source build and raise wordpress upload limit
+
+### Added
+### Changed
 - Increased WordPress upload ceiling to `350M` by aligning Nginx `client_max_body_size` and PHP `upload_max_filesize`/`post_max_size` limits.
+- Akash `provider-services` source-build stage now uses a newer Go toolchain and robust release tag resolution to avoid upstream build breakage during Docker builds.
 ### Fixed
 ### Removed
 ### Security
