@@ -21,6 +21,16 @@ AKASH_KEYRING_BACKEND="test"
 AKASH_NODE="https://rpc.akashnet.net:443"
 AKASH_CHAIN_ID="akashnet-2"
 
+format_decimal_6() {
+    local value="$1"
+    awk -v n="${value:-0}" 'BEGIN { printf "%.6f", (n + 0) }'
+}
+
+format_decimal_2() {
+    local value="$1"
+    awk -v n="${value:-0}" 'BEGIN { printf "%.2f", (n + 0) }'
+}
+
 # Function to create new Akash wallet
 create_new_akash_wallet() {
     log "Creating new Akash wallet: ${AKASH_WALLET_NAME}"
@@ -177,8 +187,12 @@ get_wallet_balance() {
     # Convert micro-denoms to token units
     local akt_balance
     local act_balance
-    akt_balance=$(echo "scale=6; ${uakt_balance} / 1000000" | bc 2>/dev/null || echo "0")
-    act_balance=$(echo "scale=6; ${uact_balance} / 1000000" | bc 2>/dev/null || echo "0")
+    local akt_balance_raw
+    local act_balance_raw
+    akt_balance_raw=$(echo "scale=12; ${uakt_balance} / 1000000" | bc 2>/dev/null || echo "0")
+    act_balance_raw=$(echo "scale=12; ${uact_balance} / 1000000" | bc 2>/dev/null || echo "0")
+    akt_balance=$(format_decimal_6 "$akt_balance_raw")
+    act_balance=$(format_decimal_6 "$act_balance_raw")
     
     # Get AKT price in USD
     local akt_price_usd
@@ -190,8 +204,12 @@ get_wallet_balance() {
     else
         local akt_usd_balance
         local act_usd_balance
-        akt_usd_balance=$(echo "scale=2; ${akt_balance} * ${akt_price_usd}" | bc 2>/dev/null || echo "0.00")
-        act_usd_balance=$(echo "scale=2; ${act_balance} * ${akt_price_usd}" | bc 2>/dev/null || echo "0.00")
+        local akt_usd_balance_raw
+        local act_usd_balance_raw
+        akt_usd_balance_raw=$(echo "scale=12; ${akt_balance} * ${akt_price_usd}" | bc 2>/dev/null || echo "0")
+        act_usd_balance_raw=$(echo "scale=12; ${act_balance} * ${akt_price_usd}" | bc 2>/dev/null || echo "0")
+        akt_usd_balance=$(format_decimal_2 "$akt_usd_balance_raw")
+        act_usd_balance=$(format_decimal_2 "$act_usd_balance_raw")
 
         echo "AKT: ${akt_balance} (uakt: ${uakt_balance}, \$${akt_usd_balance} USD) | ACT: ${act_balance} (uact: ${uact_balance}, ~\$${act_usd_balance} USD @ AKT spot)"
     fi

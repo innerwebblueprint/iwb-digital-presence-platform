@@ -22,6 +22,7 @@ Version format:
 - Removed Akash fallback-to-older-tag behavior; Docker build now enforces strict `AKASH_VERSION=latest` and fails fast if the latest upstream tag is not buildable.
 - Added required runtime dependency (`eudev-libs`) for latest Akash binary compatibility in the final image.
 - Akash balance parsing no longer assumes the first bank balance entry is `uakt`; balances are now denom-specific to support post-upgrade ACT-enabled wallets.
+- Akash balance display formatting now consistently renders leading-zero token values (for example `0.543312`) and stable USD precision in notification emails.
 ### Removed
 ### Security
 
