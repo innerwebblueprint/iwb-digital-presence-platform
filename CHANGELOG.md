@@ -16,6 +16,18 @@ Version format:
 ## [Unreleased]
 ### Added
 ### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.37] - 2026-03-28
+
+> **Commit Summary:** fix(akash): enforce latest-only build and add AKT/ACT balance reporting
+
+### Added
+### Changed
 - Akash `provider-services` build path now uses an upstream-aligned Alpine-compatible compile flow for latest releases, including wasmvm musl static library resolution and CGO-enabled external linking.
 - Akash wallet notification emails now report both token balances (`AKT` from `uakt` and `ACT` from `uact`) from live `provider-services query bank balances` output.
 ### Fixed
