@@ -3,44 +3,36 @@
 # Stage 1: Build Akash provider-services binary
 FROM golang:1.25-alpine AS akash-builder
 ARG AKASH_VERSION=latest
-ARG AKASH_RELEASE_SCAN_LIMIT=8
-RUN apk add --no-cache git curl jq
+RUN apk add --no-cache git curl jq wget ca-certificates build-base linux-headers pkgconf eudev-dev
 ENV PATH="/usr/local/go/bin:${PATH}"
 WORKDIR /build
 RUN set -e; \
     if [ "$AKASH_VERSION" = "latest" ]; then \
-    CANDIDATE_TAGS=$(curl -fsSL https://api.github.com/repos/akash-network/provider/releases \
-    | jq -r --argjson limit "$AKASH_RELEASE_SCAN_LIMIT" '[.[] | select(.draft == false and .prerelease == false) | .tag_name] | .[0:$limit] | .[]'); \
-    else \
-    CANDIDATE_TAGS="$AKASH_VERSION"; \
+    AKASH_VERSION=$(curl -fsSL https://api.github.com/repos/akash-network/provider/releases/latest | jq -r '.tag_name'); \
     fi; \
-    test -n "$CANDIDATE_TAGS"; \
-    BUILT_VERSION=""; \
-    for tag in $CANDIDATE_TAGS; do \
-    echo "Attempting Akash provider-services source build for ${tag}..."; \
+    test -n "$AKASH_VERSION"; \
+    echo "Attempting Akash provider-services source build for ${AKASH_VERSION}..."; \
     rm -rf /build/provider; \
-    if ! git clone --depth 1 --branch "$tag" https://github.com/akash-network/provider.git /build/provider; then \
-    echo "Skipping ${tag}: source checkout failed"; \
-    continue; \
-    fi; \
+    git clone --depth 1 --branch "$AKASH_VERSION" https://github.com/akash-network/provider.git /build/provider; \
+    WASMVM_VERSION=$(cd /build/provider && go list -mod=readonly -m -f '{{ .Version }}' github.com/CosmWasm/wasmvm/v3); \
+    mkdir -p /build/provider/.cache/lib; \
+    wget -q -O /build/provider/.cache/lib/libwasmvm_muslc.x86_64.a "https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}/libwasmvm_muslc.x86_64.a"; \
     if (cd /build/provider && \
-    GOTOOLCHAIN=local CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    GOTOOLCHAIN=local CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
     go build -mod=readonly \
-    -tags "osusergo,netgo,muslc,gcc" \
-    -ldflags="-s -w \
+    -tags "osusergo,netgo,muslc,gcc,ledger" \
+    -ldflags="-s -w -linkmode=external -extldflags \"-L/build/provider/.cache/lib -lm -Wl,-z,muldefs\" \
     -X github.com/akash-network/provider/version.Name=provider-services \
     -X github.com/akash-network/provider/version.AppName=provider-services \
-    -X github.com/akash-network/provider/version.Version=${tag}" \
+    -X github.com/akash-network/provider/version.Version=${AKASH_VERSION}" \
     -o /build/provider-services \
     ./cmd/provider-services); then \
-    BUILT_VERSION="$tag"; \
-    break; \
+    echo "✓ provider-services ${AKASH_VERSION} compiled successfully"; \
+    else \
+    echo "ERROR: provider-services build failed for required version ${AKASH_VERSION}"; \
+    exit 1; \
     fi; \
-    echo "Build failed for ${tag}, trying next candidate..."; \
-    done; \
-    test -n "$BUILT_VERSION"; \
-    echo "$BUILT_VERSION" > /build/provider-services.version; \
-    echo "✓ provider-services ${BUILT_VERSION} compiled successfully"
+    echo "$AKASH_VERSION" > /build/provider-services.version
 
 # Stage 2: Build Pigeonhole with unfinished extensions (for ereject support)
 FROM alpine:3.21 AS pigeonhole-builder
@@ -80,7 +72,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install required packages
 # Core system utilities and setup tools
 RUN apk update && apk add --no-cache \
-    bash rsyslog curl nano coreutils iputils zip unzip wget supervisor cronie dnsmasq tree sudo jq bc netcat-openbsd aws-cli
+    bash rsyslog curl nano coreutils iputils zip unzip wget supervisor cronie dnsmasq tree sudo jq bc netcat-openbsd aws-cli eudev-libs
 
 # Python & build tools
 RUN apk add --no-cache \

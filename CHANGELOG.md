@@ -16,7 +16,10 @@ Version format:
 ## [Unreleased]
 ### Added
 ### Changed
+- Akash `provider-services` build path now uses an upstream-aligned Alpine-compatible compile flow for latest releases, including wasmvm musl static library resolution and CGO-enabled external linking.
 ### Fixed
+- Removed Akash fallback-to-older-tag behavior; Docker build now enforces strict `AKASH_VERSION=latest` and fails fast if the latest upstream tag is not buildable.
+- Added required runtime dependency (`eudev-libs`) for latest Akash binary compatibility in the final image.
 ### Removed
 ### Security
 
