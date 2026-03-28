@@ -17,9 +17,11 @@ Version format:
 ### Added
 ### Changed
 - Akash `provider-services` build path now uses an upstream-aligned Alpine-compatible compile flow for latest releases, including wasmvm musl static library resolution and CGO-enabled external linking.
+- Akash wallet notification emails now report both token balances (`AKT` from `uakt` and `ACT` from `uact`) from live `provider-services query bank balances` output.
 ### Fixed
 - Removed Akash fallback-to-older-tag behavior; Docker build now enforces strict `AKASH_VERSION=latest` and fails fast if the latest upstream tag is not buildable.
 - Added required runtime dependency (`eudev-libs`) for latest Akash binary compatibility in the final image.
+- Akash balance parsing no longer assumes the first bank balance entry is `uakt`; balances are now denom-specific to support post-upgrade ACT-enabled wallets.
 ### Removed
 ### Security
 

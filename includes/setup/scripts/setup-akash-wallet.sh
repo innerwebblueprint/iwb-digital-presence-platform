@@ -148,22 +148,37 @@ get_wallet_balance() {
     # Log to stderr to avoid capturing in return value
     log "Checking wallet balance for address: ${address}" >&2
     
-    local balance
-    # Add timeout to prevent hanging
-    balance=$(timeout 30 provider-services query bank balances "${address}" \
+    local balance_json
+    local uakt_balance
+    local uact_balance
+    local query_status=0
+
+    balance_json=$(timeout 30 provider-services query bank balances "${address}" \
         --node "${AKASH_NODE}" \
         --chain-id "${AKASH_CHAIN_ID}" \
-        --output json 2>/dev/null | jq -r '.balances[0].amount // "0"' 2>/dev/null)
-    
-    # Handle timeout or connection issues
-    if [ $? -ne 0 ] || [ -z "$balance" ] || [ "$balance" = "null" ]; then
-        log "WARN: Could not fetch balance (network issue or new wallet), defaulting to 0" >&2
-        balance="0"
+        --output json 2>/dev/null) || query_status=$?
+
+    if [ "$query_status" -ne 0 ] || [ -z "$balance_json" ]; then
+        log "WARN: Could not fetch wallet balances (network issue or new wallet), defaulting AKT/ACT to 0" >&2
+        uakt_balance="0"
+        uact_balance="0"
+    else
+        uakt_balance=$(echo "$balance_json" | jq -r '([.balances[]? | select(.denom == "uakt")][0].amount) // "0"' 2>/dev/null || echo "0")
+        uact_balance=$(echo "$balance_json" | jq -r '([.balances[]? | select(.denom == "uact")][0].amount) // "0"' 2>/dev/null || echo "0")
     fi
-    
-    # Convert from uakt to AKT (divide by 1000000)
+
+    if [ -z "$uakt_balance" ] || [ "$uakt_balance" = "null" ]; then
+        uakt_balance="0"
+    fi
+    if [ -z "$uact_balance" ] || [ "$uact_balance" = "null" ]; then
+        uact_balance="0"
+    fi
+
+    # Convert micro-denoms to token units
     local akt_balance
-    akt_balance=$(echo "scale=6; ${balance} / 1000000" | bc 2>/dev/null || echo "0")
+    local act_balance
+    akt_balance=$(echo "scale=6; ${uakt_balance} / 1000000" | bc 2>/dev/null || echo "0")
+    act_balance=$(echo "scale=6; ${uact_balance} / 1000000" | bc 2>/dev/null || echo "0")
     
     # Get AKT price in USD
     local akt_price_usd
@@ -171,15 +186,14 @@ get_wallet_balance() {
     
     if [ "$akt_price_usd" = "0" ] || [ -z "$akt_price_usd" ]; then
         log "WARN: Could not fetch AKT price from API" >&2
-        # Return just AKT balance without USD conversion
-        echo "${akt_balance} AKT (USD value unavailable)"
+        echo "AKT: ${akt_balance} (uakt: ${uakt_balance}) | ACT: ${act_balance} (uact: ${uact_balance})"
     else
-        # Calculate USD value
-        local usd_balance
-        usd_balance=$(echo "scale=2; ${akt_balance} * ${akt_price_usd}" | bc 2>/dev/null || echo "0.00")
-        
-        # Return both AKT and USD values
-        echo "${akt_balance} AKT (\$${usd_balance} USD at the time this email was sent)"
+        local akt_usd_balance
+        local act_usd_balance
+        akt_usd_balance=$(echo "scale=2; ${akt_balance} * ${akt_price_usd}" | bc 2>/dev/null || echo "0.00")
+        act_usd_balance=$(echo "scale=2; ${act_balance} * ${akt_price_usd}" | bc 2>/dev/null || echo "0.00")
+
+        echo "AKT: ${akt_balance} (uakt: ${uakt_balance}, \$${akt_usd_balance} USD) | ACT: ${act_balance} (uact: ${uact_balance}, ~\$${act_usd_balance} USD @ AKT spot)"
     fi
 }
 
@@ -209,13 +223,14 @@ A new Akash deployment wallet has been created for your domain: ${IWB_DOMAIN}
 
 Wallet Details:
 - Public Address: ${address}
-- Current Balance: ${balance}
+- Current Balances: ${balance}
 - Wallet Name: ${AKASH_WALLET_NAME}
 - Network: Akash Network (akashnet-2)
 
 The wallet has been securely backed up to your configured cloud storage and removed from the local system for security.
 
 To fund this wallet for deployments, send AKT tokens to the public address above.
+If needed, convert between AKT and ACT using Akash BME commands.
 
 Note: The private key/mnemonic is NOT included in this email for security reasons. 
 It is securely stored in your encrypted cloud backup.
@@ -265,13 +280,14 @@ Your Akash deployment wallet has been verified and is ready for use on ${IWB_DOM
 
 Wallet Details:
 - Public Address: ${address}
-- Current Balance: ${balance}
+- Current Balances: ${balance}
 - Wallet Name: ${AKASH_WALLET_NAME}
 - Network: Akash Network (akashnet-2)
 
 This wallet was restored from your secure cloud backup and is ready for deployments.
 
 To fund this wallet for deployments, send AKT tokens to the public address above.
+If needed, convert between AKT and ACT using Akash BME commands.
 
 Note: The private key/mnemonic is NOT included in this email for security reasons. 
 It is securely stored in your encrypted cloud backup.
