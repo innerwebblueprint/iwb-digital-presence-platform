@@ -165,13 +165,6 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
     printf '#!/bin/sh\nexec /usr/local/bin/wp-cli.phar --allow-root "$@"\n' > /usr/local/bin/wp && \
     chmod +x /usr/local/bin/wp
 
-# Install iwb-akash-deploy from GitHub repository 
-RUN cd /tmp && \
-    wget https://github.com/innerwebblueprint/iwb-akash-deploy/raw/refs/heads/master/iwb-akash-deploy.py -O iwb-akash-deploy && \
-    mv iwb-akash-deploy /usr/local/bin/iwb-akash-deploy && \
-    chmod +x /usr/local/bin/iwb-akash-deploy && \
-    echo "✓ iwb-akash-deploy installed to /usr/local/bin"
-
 # Install fonts for imagemagik
 RUN apk add --no-cache \
     msttcorefonts-installer && update-ms-fonts && fc-cache -f
@@ -202,6 +195,14 @@ RUN mkdir -p /var/www/html/n8n /home/n8n && \
 #    chmod 440 /etc/sudoers.d/n8n && \
 #    touch /var/log/n8n-commands.log && \
 #    chown n8n:n8n /var/log/n8n-commands.log 
+
+# Install iwb-akash-deploy from GitHub repository 
+RUN cd /tmp && \
+    wget https://github.com/innerwebblueprint/iwb-akash-deploy/raw/refs/heads/master/iwb-akash-deploy.py -O iwb-akash-deploy && \
+    mv iwb-akash-deploy /usr/local/bin/iwb-akash-deploy && \
+    chmod +x /usr/local/bin/iwb-akash-deploy && \
+    echo "✓ iwb-akash-deploy installed to /usr/local/bin"
+
 
 # Ensure correct vmail user and group
 RUN deluser vmail 2>/dev/null || true && \
