@@ -197,7 +197,9 @@ RUN mkdir -p /var/www/html/n8n /home/n8n && \
 #    chown n8n:n8n /var/log/n8n-commands.log 
 
 # Install iwb-akash-deploy from GitHub repository 
+ARG IWB_AKASH_DEPLOY_CACHE_BUST=0
 RUN cd /tmp && \
+    echo "IWB_AKASH_DEPLOY_CACHE_BUST=${IWB_AKASH_DEPLOY_CACHE_BUST}" && \
     wget https://github.com/innerwebblueprint/iwb-akash-deploy/raw/refs/heads/master/iwb-akash-deploy.py -O iwb-akash-deploy && \
     mv iwb-akash-deploy /usr/local/bin/iwb-akash-deploy && \
     chmod +x /usr/local/bin/iwb-akash-deploy && \

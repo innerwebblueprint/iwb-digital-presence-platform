@@ -162,12 +162,16 @@ fi
 # Change to project root
 cd "$PROJECT_ROOT"
 
+# Always bust cache for iwb-akash-deploy fetch layer
+AKASH_DEPLOY_CACHE_BUST=$(date +%s)
+info "IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST"
+
 # Build the image
 log "Building Docker image..."
-info "Command: docker build $NO_CACHE $PLATFORM ${TAGS[*]} ."
+info "Command: docker build $NO_CACHE $PLATFORM --build-arg IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST ${TAGS[*]} ."
 echo ""
 
-docker build $NO_CACHE $PLATFORM "${TAGS[@]}" . || error "Docker build failed"
+docker build $NO_CACHE $PLATFORM --build-arg "IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST" "${TAGS[@]}" . || error "Docker build failed"
 
 log "Docker build successful!"
 echo ""
