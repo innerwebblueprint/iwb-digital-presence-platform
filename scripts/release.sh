@@ -207,17 +207,10 @@ if [[ $CURRENT_VERSION =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
     MAJOR="${BASH_REMATCH[1]}"
     MINOR="${BASH_REMATCH[2]}"
     PATCH="${BASH_REMATCH[3]}"
-elif [[ $CURRENT_VERSION =~ ^dev-b([0-9]+)$ ]]; then
-    # If coming from dev build, start at v1.0.0 or ask user
-    warn "Current version is a dev build ($CURRENT_VERSION)"
-    read -p "Enter starting version (e.g., 1.0.0): " START_VERSION
-    if [[ $START_VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-        MAJOR="${BASH_REMATCH[1]}"
-        MINOR="${BASH_REMATCH[2]}"
-        PATCH="${BASH_REMATCH[3]}"
-    else
-        error "Invalid version format. Use #.#.# format"
-    fi
+elif [[ $CURRENT_VERSION =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)-dev\.([0-9]+)$ ]]; then
+    MAJOR="${BASH_REMATCH[1]}"
+    MINOR="${BASH_REMATCH[2]}"
+    PATCH="${BASH_REMATCH[3]}"
 else
     error "Unknown version format: $CURRENT_VERSION"
 fi
@@ -312,46 +305,10 @@ log "Merged to main and tagged ✓"
 # Step 5: Build Docker images (on main branch)
 if [ "$SKIP_DOCKER" = false ]; then
     step "Step 5: Building Docker Images"
-    
-    if [ ! -f "$PROJECT_ROOT/Dockerfile" ]; then
-        error "Dockerfile not found in $PROJECT_ROOT"
-    fi
-    
-    # Extract version numbers for tags
-    if [[ $NEW_VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-        MAJOR="${BASH_REMATCH[1]}"
-        MINOR="${BASH_REMATCH[2]}"
-        PATCH="${BASH_REMATCH[3]}"
-        
-        info "Building with production tags:"
-        echo "  - $DOCKER_REPO:$NEW_VERSION"
-        echo "  - $DOCKER_REPO:$MAJOR.$MINOR.$PATCH"
-        echo "  - $DOCKER_REPO:$MAJOR.$MINOR"
-        echo "  - $DOCKER_REPO:$MAJOR"
-        echo "  - $DOCKER_REPO:latest"
-        echo ""
-        
-        docker build \
-            -t "$DOCKER_REPO:$NEW_VERSION" \
-            -t "$DOCKER_REPO:$MAJOR.$MINOR.$PATCH" \
-            -t "$DOCKER_REPO:$MAJOR.$MINOR" \
-            -t "$DOCKER_REPO:$MAJOR" \
-            -t "$DOCKER_REPO:latest" \
-            . || error "Docker build failed"
-        
-        log "Docker build successful ✓"
-        
-        # Push to Docker Hub
-        step "Step 6: Pushing to Docker Hub"
-        
-        docker push "$DOCKER_REPO:$NEW_VERSION" || error "Failed to push $NEW_VERSION"
-        docker push "$DOCKER_REPO:$MAJOR.$MINOR.$PATCH" || error "Failed to push $MAJOR.$MINOR.$PATCH"
-        docker push "$DOCKER_REPO:$MAJOR.$MINOR" || error "Failed to push $MAJOR.$MINOR"
-        docker push "$DOCKER_REPO:$MAJOR" || error "Failed to push $MAJOR"
-        docker push "$DOCKER_REPO:latest" || error "Failed to push latest"
-        
-        log "Pushed to Docker Hub ✓"
-    fi
+
+    "$PROJECT_ROOT/scripts/build-and-push.sh" --yes || error "Docker build/push failed"
+
+    log "Docker build and push successful ✓"
 else
     warn "Skipping Docker build/push (--skip-docker flag)"
 fi

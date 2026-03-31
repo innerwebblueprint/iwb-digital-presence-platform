@@ -68,7 +68,7 @@ Our workflow uses the CHANGELOG as the single source of truth for commit message
 ---
 
 ### `bump-version.sh`
-Increments version and updates CHANGELOG (used by dev-deploy.sh internally).
+Increments version and updates CHANGELOG.
 
 **Usage:**
 ```bash
@@ -118,7 +118,7 @@ Builds Docker image and pushes to Docker Hub.
 **What it does:**
 1. Reads version from `VERSION` file
 2. Determines appropriate Docker tags based on version type:
-   - **Dev builds** (`dev-b###`): Tags as `dev-b005` and `dev-latest`
+   - **Dev builds** (`v#.#.#-dev.#`): Tags as `v1.0.0-dev.40` and `dev-latest`
    - **Feature dev builds** (`--feature-tag <name>`): Tags as `feature-<name>-<version>` and `feature-<name>-latest`
    - **Production** (`v#.#.#`): Tags as `v1.0.0`, `1.0.0`, `1.0`, `1`, and `latest`
 3. Builds Docker image with all tags

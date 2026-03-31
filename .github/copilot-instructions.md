@@ -3,7 +3,7 @@
 ## Project Overview
 Single-container Docker platform providing self-hosted email (Postfix/Dovecot/Rspamd) + WordPress + n8n automation, designed for sovereignty-focused users. Built on Alpine Linux 3.21 with persistent S3-compatible (Storj) cloud backups for zero-data-loss deployments.
 
-**Current Version**: `dev-b004` (first working email support tag)
+**Current Versioning**: `v#.#.#-dev.N` for development builds and `v#.#.#` for releases
 
 ## Architecture Pattern: State-Based Setup Scripts
 

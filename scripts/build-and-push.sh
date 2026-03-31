@@ -10,6 +10,7 @@
 #   --skip-push   Build only, don't push to Docker Hub
 #   --platform    Specify platform (e.g., linux/amd64,linux/arm64)
 #   --feature-tag Build feature-scoped tags (e.g., dual-storj-r2-migration)
+#   --yes         Skip push confirmation prompt
 #
 # This script:
 #   1. Reads version from VERSION file
@@ -30,6 +31,7 @@ NO_CACHE=""
 SKIP_PUSH=false
 PLATFORM=""
 FEATURE_TAG=""
+ASSUME_YES=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -48,6 +50,10 @@ while [[ $# -gt 0 ]]; do
         --feature-tag)
             FEATURE_TAG="$2"
             shift 2
+            ;;
+        --yes)
+            ASSUME_YES=true
+            shift
             ;;
         *)
             echo "Unknown option: $1"
@@ -103,20 +109,9 @@ fi
 
 # Determine tags based on version type
 TAGS=()
+CURRENT_BRANCH="$(git -C "$PROJECT_ROOT" branch --show-current 2>/dev/null || true)"
 
-if [[ $VERSION =~ ^dev-b([0-9]+)$ ]]; then
-    # Development build (legacy format)
-    if [ -n "$FEATURE_TAG_SANITIZED" ]; then
-        TAGS+=("-t" "$DOCKER_REPO:feature-${FEATURE_TAG_SANITIZED}-${VERSION}")
-        TAGS+=("-t" "$DOCKER_REPO:feature-${FEATURE_TAG_SANITIZED}-latest")
-        log "Feature development build detected (legacy format)"
-    else
-        TAGS+=("-t" "$DOCKER_REPO:$VERSION")
-        TAGS+=("-t" "$DOCKER_REPO:dev-latest")
-        log "Development build detected (legacy format)"
-    fi
-    
-elif [[ $VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)-dev\.([0-9]+)$ ]]; then
+if [[ $VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)-dev\.([0-9]+)$ ]]; then
     # Development build (semver format: v1.0.0-dev.11)
     if [ -n "$FEATURE_TAG_SANITIZED" ]; then
         TAGS+=("-t" "$DOCKER_REPO:feature-${FEATURE_TAG_SANITIZED}-${VERSION}")
@@ -127,7 +122,7 @@ elif [[ $VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)-dev\.([0-9]+)$ ]]; then
         TAGS+=("-t" "$DOCKER_REPO:dev-latest")
         log "Development build detected (semver dev)"
     fi
-    
+
 elif [[ $VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
     # Production release
     MAJOR="${BASH_REMATCH[1]}"
@@ -140,9 +135,13 @@ elif [[ $VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
     TAGS+=("-t" "$DOCKER_REPO:$MAJOR")
     TAGS+=("-t" "$DOCKER_REPO:latest")
     log "Production release detected"
-    
+
 else
-    error "Unknown version format: $VERSION (expected dev-b###, v#.#.#-dev.#, or v#.#.#)"
+    error "Unknown version format: $VERSION (expected v#.#.#-dev.# or v#.#.#)"
+fi
+
+if [[ "$VERSION" =~ -dev\. ]] && [ -z "$FEATURE_TAG_SANITIZED" ] && [ -n "$CURRENT_BRANCH" ] && [ "$CURRENT_BRANCH" != "dev" ] && [ "$CURRENT_BRANCH" != "main" ]; then
+    info "Current branch is '$CURRENT_BRANCH'. Building without --feature-tag will publish/update dev tags."
 fi
 
 # Display tags
@@ -183,11 +182,13 @@ if [ "$SKIP_PUSH" = true ]; then
 fi
 
 # Confirm push
-read -p "$(echo -e ${YELLOW}Push images to Docker Hub? [y/N]${NC} )" -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    log "Push cancelled"
-    exit 0
+if [ "$ASSUME_YES" = false ]; then
+    read -p "$(echo -e ${YELLOW}Push images to Docker Hub? [y/N]${NC} )" -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log "Push cancelled"
+        exit 0
+    fi
 fi
 
 log "Pushing images to Docker Hub..."

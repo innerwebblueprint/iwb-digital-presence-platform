@@ -6,7 +6,7 @@
 #   ./scripts/bump-version.sh [build|major|minor|patch]
 #
 # Examples:
-#   ./scripts/bump-version.sh build    # dev-b004 -> dev-b005
+#   ./scripts/bump-version.sh build    # v1.0.0-dev.4 -> v1.0.0-dev.5
 #   ./scripts/bump-version.sh major    # v1.0.0 -> v2.0.0
 #   ./scripts/bump-version.sh minor    # v1.0.0 -> v1.1.0
 #   ./scripts/bump-version.sh patch    # v1.0.0 -> v1.0.1
@@ -52,13 +52,20 @@ BUMP_TYPE="${1:-build}"
 # Calculate new version
 case "$BUMP_TYPE" in
     build)
-        # Increment build number (dev-b004 -> dev-b005)
-        if [[ $CURRENT_VERSION =~ ^dev-b([0-9]+)$ ]]; then
-            BUILD_NUM="${BASH_REMATCH[1]}"
-            NEW_BUILD_NUM=$((BUILD_NUM + 1))
-            NEW_VERSION=$(printf "dev-b%03d" $NEW_BUILD_NUM)
+        # Increment dev build number (v1.0.0-dev.4 -> v1.0.0-dev.5)
+        if [[ $CURRENT_VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)-dev\.([0-9]+)$ ]]; then
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+            PATCH="${BASH_REMATCH[3]}"
+            DEV_NUM="${BASH_REMATCH[4]}"
+            NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}-dev.$((DEV_NUM + 1))"
+        elif [[ $CURRENT_VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+            PATCH="${BASH_REMATCH[3]}"
+            NEW_VERSION="v${MAJOR}.${MINOR}.$((PATCH + 1))-dev.1"
         else
-            error "Current version '$CURRENT_VERSION' is not a dev build format (dev-b###)"
+            error "Current version '$CURRENT_VERSION' is not a supported dev/release format"
         fi
         ;;
     

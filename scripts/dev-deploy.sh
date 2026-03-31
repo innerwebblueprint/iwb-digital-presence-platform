@@ -7,11 +7,11 @@
 #
 # This script does EVERYTHING for a dev deployment:
 #   1. Ensures working directory is clean (all changes committed)
-#   2. Bumps dev version (dev-b004 -> dev-b005)
+#   2. Bumps dev version (v1.0.0-dev.4 -> v1.0.0-dev.5)
 #   3. Updates CHANGELOG
 #   4. Commits version bump
 #   5. Creates git tag
-#   6. Builds Docker image with dev-latest and dev-b### tags
+#   6. Builds Docker image with dev-latest and version tags
 #   7. Pushes to Docker Hub
 #   8. Pushes to GitHub (commits + tags)
 #
@@ -251,16 +251,7 @@ log "Created commit and tag for $NEW_VERSION ✓"
 # Step 3: Build Docker image
 if [ "$SKIP_DOCKER" = false ]; then
     step "Step 3: Building Docker Image"
-    
-    if [ ! -f "$PROJECT_ROOT/Dockerfile" ]; then
-        error "Dockerfile not found in $PROJECT_ROOT"
-    fi
-    
-    info "Building with tags:"
-    echo "  - $DOCKER_REPO:$NEW_VERSION (specific version)"
-    echo "  - $DOCKER_REPO:dev-latest (always latest dev)"
-    echo ""
-    
+
     # Ask about cache unless --no-cache flag was set or --force is used
     if [ -z "$NO_CACHE" ] && [ "$FORCE" = false ]; then
         read -p "$(echo -e ${YELLOW}'Use Docker cache? [Y/n]'${NC} )" -n 1 -r
@@ -282,22 +273,15 @@ if [ "$SKIP_DOCKER" = false ]; then
             exit 0
         fi
     fi
-    
-    # Build with two tags: specific version + dev-latest
-    docker build $NO_CACHE \
-        -t "$DOCKER_REPO:$NEW_VERSION" \
-        -t "$DOCKER_REPO:dev-latest" \
-        . || error "Docker build failed"
-    
-    log "Docker build successful ✓"
-    
-    # Step 4: Push to Docker Hub
-    step "Step 4: Pushing to Docker Hub"
-    
-    docker push "$DOCKER_REPO:$NEW_VERSION" || error "Failed to push $NEW_VERSION"
-    docker push "$DOCKER_REPO:dev-latest" || error "Failed to push dev-latest"
-    
-    log "Pushed to Docker Hub ✓"
+
+    BUILD_CMD=("$PROJECT_ROOT/scripts/build-and-push.sh" "--yes")
+    if [ -n "$NO_CACHE" ]; then
+        BUILD_CMD+=("--no-cache")
+    fi
+
+    "${BUILD_CMD[@]}" || error "Docker build/push failed"
+
+    log "Docker build and push successful ✓"
 else
     warn "Skipping Docker build/push (--skip-docker flag)"
 fi
