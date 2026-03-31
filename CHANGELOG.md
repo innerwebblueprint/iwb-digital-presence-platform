@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.44] - 2026-03-31
+
 > **Commit Summary:** fix(backup): run nightly cleanup at 2am pacific time
 
 ### Added
@@ -23,6 +33,9 @@ Version format:
 ### Fixed
 ### Removed
 ### Security
+
+---
+
 
 ---
 
