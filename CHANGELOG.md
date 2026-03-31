@@ -17,6 +17,24 @@ Version format:
 ### Added
 ### Changed
 ### Fixed
+- Akash wallet startup flow now retries storage-provider initialization before restore/create operations, reducing missed Akash wallet emails caused by transient Storj init failures during concurrent startup tasks.
+- Added an explicit Akash wallet warning email when startup cannot complete wallet setup after retries, so failures are visible instead of silent.
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.38] - 2026-03-30
+
+> **Commit Summary:** feat(storage): add guarded source-delete mode to storage migration utility
+
+### Added
+- Added `--delete` mode to `includes/setup/scripts/storage-providers/migrate-storage.sh` so operators can remove migrated backup archives from the old provider after verification.
+- Added interactive `DELETE` confirmation for non-dry-run delete operations to reduce accidental destructive use.
+### Changed
+- Extended the storage migration utility to support provider-native object deletion for both Storj and Cloudflare R2.
+- Refactored prefix processing in the migration utility into shared helpers so copy and delete flows stay aligned.
+### Fixed
 ### Removed
 ### Security
 
@@ -737,4 +755,3 @@ Version format:
 - Email stack integration
 - WordPress setup automation
 - n8n platform integration
-

@@ -11,6 +11,7 @@ INTERVAL="all"
 FROM_PROVIDER=""
 TO_PROVIDER=""
 DRY_RUN=false
+DELETE_MODE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -34,6 +35,10 @@ while [[ $# -gt 0 ]]; do
       DRY_RUN=true
       shift
       ;;
+    --delete)
+      DELETE_MODE=true
+      shift
+      ;;
     *)
       log "$ERR_PREFIX Unknown argument: $1"
       (return 1 2>/dev/null) || exit 1
@@ -41,14 +46,26 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$FROM_PROVIDER" || -z "$TO_PROVIDER" ]]; then
-  log "$ERR_PREFIX Usage: $0 --from <storj|r2> --to <storj|r2> [--dataset <name|all>] [--interval <name|all>] [--dry-run]"
-  (return 1 2>/dev/null) || exit 1
-fi
+if $DELETE_MODE; then
+  if [[ -z "$FROM_PROVIDER" ]]; then
+    log "$ERR_PREFIX Usage: $0 --delete --from <storj|r2> [--dataset <name|all>] [--interval <name|all>] [--dry-run]"
+    (return 1 2>/dev/null) || exit 1
+  fi
 
-if [[ "$FROM_PROVIDER" == "$TO_PROVIDER" ]]; then
-  log "$ERR_PREFIX Source and destination providers must be different"
-  (return 1 2>/dev/null) || exit 1
+  if [[ -n "$TO_PROVIDER" ]]; then
+    log "$ERR_PREFIX --to cannot be used with --delete"
+    (return 1 2>/dev/null) || exit 1
+  fi
+else
+  if [[ -z "$FROM_PROVIDER" || -z "$TO_PROVIDER" ]]; then
+    log "$ERR_PREFIX Usage: $0 --from <storj|r2> --to <storj|r2> [--dataset <name|all>] [--interval <name|all>] [--dry-run]"
+    (return 1 2>/dev/null) || exit 1
+  fi
+
+  if [[ "$FROM_PROVIDER" == "$TO_PROVIDER" ]]; then
+    log "$ERR_PREFIX Source and destination providers must be different"
+    (return 1 2>/dev/null) || exit 1
+  fi
 fi
 
 VALID_DATASETS=(mail postfix ssl dkim rspamd wpdb wphtml n8n akash)
@@ -161,6 +178,23 @@ provider_upload() {
   esac
 }
 
+provider_delete() {
+  local provider="$1"
+  local remote_uri="$2"
+
+  case "$provider" in
+    storj)
+      uplink rm "$remote_uri" >/dev/null 2>&1
+      ;;
+    r2)
+      r2_aws s3 rm "$remote_uri" --only-show-errors >/dev/null 2>&1
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 build_dest_uri() {
   local provider="$1"
   local relative_path="$2"
@@ -179,6 +213,117 @@ relative_object_path() {
     s3://*) echo "${uri#s3://${IWB_R2_BUCKET}/}" ;;
     *) return 1 ;;
   esac
+}
+
+confirm_delete() {
+  local scope="provider=${FROM_PROVIDER}, dataset=${DATASET}, interval=${INTERVAL}"
+  local confirmation=""
+
+  if $DRY_RUN; then
+    return 0
+  fi
+
+  if [[ ! -t 0 ]]; then
+    log "$ERR_PREFIX Refusing destructive delete without an interactive TTY. Re-run with --dry-run to preview, then confirm interactively."
+    (return 1 2>/dev/null) || exit 1
+  fi
+
+  log "Delete mode will permanently remove matching backup archives from ${FROM_PROVIDER}."
+  log "Scope: ${scope}"
+  log "Run with --dry-run first if you have not already reviewed the object list."
+  printf "%b " "${IWB_PREFIX} ${IWB_BLUE}[${MODULE}]${IWB_RESET} Type DELETE to continue: "
+  read -r confirmation
+
+  if [[ "$confirmation" != "DELETE" ]]; then
+    log "Delete cancelled."
+    (return 1 2>/dev/null) || exit 1
+  fi
+}
+
+process_migration_prefix() {
+  local prefix_path="$1"
+
+  log "Scanning ${FROM_PROVIDER} prefix: ${prefix_path}"
+
+  while IFS= read -r src_uri; do
+    [[ -z "$src_uri" ]] && continue
+
+    rel_path="$(relative_object_path "$src_uri")"
+    state_key="${FROM_PROVIDER}|${TO_PROVIDER}|${rel_path}"
+
+    if grep -Fxq "$state_key" "$state_file"; then
+      skipped=$((skipped + 1))
+      continue
+    fi
+
+    dst_uri="$(build_dest_uri "$TO_PROVIDER" "$rel_path")"
+    obj_file="$tmp_dir/$(basename "$rel_path")"
+    verify_file="${obj_file}.verify"
+
+    if $DRY_RUN; then
+      log "DRY-RUN ${src_uri} -> ${dst_uri}"
+      continue
+    fi
+
+    rm -f "$obj_file" "$verify_file"
+
+    if ! provider_download "$FROM_PROVIDER" "$src_uri" "$obj_file"; then
+      log "$ERR_PREFIX Download failed: ${src_uri}"
+      failed=$((failed + 1))
+      continue
+    fi
+
+    if ! provider_upload "$TO_PROVIDER" "$obj_file" "$dst_uri"; then
+      log "$ERR_PREFIX Upload failed: ${dst_uri}"
+      failed=$((failed + 1))
+      rm -f "$obj_file"
+      continue
+    fi
+
+    if ! provider_download "$TO_PROVIDER" "$dst_uri" "$verify_file"; then
+      log "$ERR_PREFIX Verification download failed: ${dst_uri}"
+      failed=$((failed + 1))
+      rm -f "$obj_file" "$verify_file"
+      continue
+    fi
+
+    src_size=$(stat -c%s "$obj_file")
+    dst_size=$(stat -c%s "$verify_file")
+
+    if [[ "$src_size" -ne "$dst_size" ]]; then
+      log "$ERR_PREFIX Size verification failed for ${dst_uri} (${src_size} != ${dst_size})"
+      failed=$((failed + 1))
+    else
+      echo "$state_key" >> "$state_file"
+      migrated=$((migrated + 1))
+      log "Migrated ${rel_path}"
+    fi
+
+    rm -f "$obj_file" "$verify_file"
+  done < <(provider_list "$FROM_PROVIDER" "$prefix_path")
+}
+
+process_delete_prefix() {
+  local prefix_path="$1"
+
+  log "Scanning ${FROM_PROVIDER} prefix: ${prefix_path}"
+
+  while IFS= read -r src_uri; do
+    [[ -z "$src_uri" ]] && continue
+
+    if $DRY_RUN; then
+      log "DRY-RUN delete ${src_uri}"
+      continue
+    fi
+
+    if provider_delete "$FROM_PROVIDER" "$src_uri"; then
+      deleted=$((deleted + 1))
+      log "Deleted ${src_uri}"
+    else
+      failed=$((failed + 1))
+      log "$ERR_PREFIX Delete failed: ${src_uri}"
+    fi
+  done < <(provider_list "$FROM_PROVIDER" "$prefix_path")
 }
 
 validate_provider_env() {
@@ -204,142 +349,51 @@ validate_provider_env() {
   esac
 }
 
-log "Validating source and destination provider credentials..."
+if $DELETE_MODE; then
+  log "Validating delete provider credentials..."
+else
+  log "Validating source and destination provider credentials..."
+fi
 validate_provider_env "$FROM_PROVIDER"
-validate_provider_env "$TO_PROVIDER"
+if ! $DELETE_MODE; then
+  validate_provider_env "$TO_PROVIDER"
+fi
 
 tmp_dir="/tmp/iwb-storage-migration"
 mkdir -p "$tmp_dir"
 
 migrated=0
+deleted=0
 skipped=0
 failed=0
+
+if $DELETE_MODE; then
+  confirm_delete
+fi
 
 for ds in "${TARGET_DATASETS[@]}"; do
   for itv in "${TARGET_INTERVALS[@]}"; do
     versioned_prefix="IWBDPP/${ds}/${itv}/"
-    log "Scanning ${FROM_PROVIDER} prefix: ${versioned_prefix}"
-
-    while IFS= read -r src_uri; do
-      [[ -z "$src_uri" ]] && continue
-
-      rel_path="$(relative_object_path "$src_uri")"
-      state_key="${FROM_PROVIDER}|${TO_PROVIDER}|${rel_path}"
-
-      if grep -Fxq "$state_key" "$state_file"; then
-        skipped=$((skipped + 1))
-        continue
-      fi
-
-      dst_uri="$(build_dest_uri "$TO_PROVIDER" "$rel_path")"
-      obj_file="$tmp_dir/$(basename "$rel_path")"
-      verify_file="${obj_file}.verify"
-
-      if $DRY_RUN; then
-        log "DRY-RUN ${src_uri} -> ${dst_uri}"
-        continue
-      fi
-
-      rm -f "$obj_file" "$verify_file"
-
-      if ! provider_download "$FROM_PROVIDER" "$src_uri" "$obj_file"; then
-        log "$ERR_PREFIX Download failed: ${src_uri}"
-        failed=$((failed + 1))
-        continue
-      fi
-
-      if ! provider_upload "$TO_PROVIDER" "$obj_file" "$dst_uri"; then
-        log "$ERR_PREFIX Upload failed: ${dst_uri}"
-        failed=$((failed + 1))
-        rm -f "$obj_file"
-        continue
-      fi
-
-      if ! provider_download "$TO_PROVIDER" "$dst_uri" "$verify_file"; then
-        log "$ERR_PREFIX Verification download failed: ${dst_uri}"
-        failed=$((failed + 1))
-        rm -f "$obj_file" "$verify_file"
-        continue
-      fi
-
-      src_size=$(stat -c%s "$obj_file")
-      dst_size=$(stat -c%s "$verify_file")
-
-      if [[ "$src_size" -ne "$dst_size" ]]; then
-        log "$ERR_PREFIX Size verification failed for ${dst_uri} (${src_size} != ${dst_size})"
-        failed=$((failed + 1))
-      else
-        echo "$state_key" >> "$state_file"
-        migrated=$((migrated + 1))
-        log "Migrated ${rel_path}"
-      fi
-
-      rm -f "$obj_file" "$verify_file"
-    done < <(provider_list "$FROM_PROVIDER" "$versioned_prefix")
+    if $DELETE_MODE; then
+      process_delete_prefix "$versioned_prefix"
+    else
+      process_migration_prefix "$versioned_prefix"
+    fi
 
     latest_prefix="IWBDPP/${ds}/latest/"
-    log "Scanning ${FROM_PROVIDER} prefix: ${latest_prefix}"
-
-    while IFS= read -r src_uri; do
-      [[ -z "$src_uri" ]] && continue
-
-      rel_path="$(relative_object_path "$src_uri")"
-      state_key="${FROM_PROVIDER}|${TO_PROVIDER}|${rel_path}"
-
-      if grep -Fxq "$state_key" "$state_file"; then
-        skipped=$((skipped + 1))
-        continue
-      fi
-
-      dst_uri="$(build_dest_uri "$TO_PROVIDER" "$rel_path")"
-      obj_file="$tmp_dir/$(basename "$rel_path")"
-      verify_file="${obj_file}.verify"
-
-      if $DRY_RUN; then
-        log "DRY-RUN ${src_uri} -> ${dst_uri}"
-        continue
-      fi
-
-      rm -f "$obj_file" "$verify_file"
-
-      if ! provider_download "$FROM_PROVIDER" "$src_uri" "$obj_file"; then
-        log "$ERR_PREFIX Download failed: ${src_uri}"
-        failed=$((failed + 1))
-        continue
-      fi
-
-      if ! provider_upload "$TO_PROVIDER" "$obj_file" "$dst_uri"; then
-        log "$ERR_PREFIX Upload failed: ${dst_uri}"
-        failed=$((failed + 1))
-        rm -f "$obj_file"
-        continue
-      fi
-
-      if ! provider_download "$TO_PROVIDER" "$dst_uri" "$verify_file"; then
-        log "$ERR_PREFIX Verification download failed: ${dst_uri}"
-        failed=$((failed + 1))
-        rm -f "$obj_file" "$verify_file"
-        continue
-      fi
-
-      src_size=$(stat -c%s "$obj_file")
-      dst_size=$(stat -c%s "$verify_file")
-
-      if [[ "$src_size" -ne "$dst_size" ]]; then
-        log "$ERR_PREFIX Size verification failed for ${dst_uri} (${src_size} != ${dst_size})"
-        failed=$((failed + 1))
-      else
-        echo "$state_key" >> "$state_file"
-        migrated=$((migrated + 1))
-        log "Migrated ${rel_path}"
-      fi
-
-      rm -f "$obj_file" "$verify_file"
-    done < <(provider_list "$FROM_PROVIDER" "$latest_prefix")
+    if $DELETE_MODE; then
+      process_delete_prefix "$latest_prefix"
+    else
+      process_migration_prefix "$latest_prefix"
+    fi
   done
 done
 
-log "Migration summary: migrated=${migrated}, skipped=${skipped}, failed=${failed}, state=${state_file}"
+if $DELETE_MODE; then
+  log "Delete summary: deleted=${deleted}, failed=${failed}"
+else
+  log "Migration summary: migrated=${migrated}, skipped=${skipped}, failed=${failed}, state=${state_file}"
+fi
 
 if [[ "$failed" -gt 0 ]]; then
   (return 1 2>/dev/null) || exit 1
