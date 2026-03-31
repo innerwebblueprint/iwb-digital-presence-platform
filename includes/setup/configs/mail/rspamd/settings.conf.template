@@ -1,0 +1,16 @@
+# includes/setup/configs/mail/rspamd/settings.conf.template
+
+# This is a rendered file for domain {{IWB_DOMAIN}}
+# Please do not edit here, this template is built into the docker container
+
+rules {
+  IWB_PRIMARY_MAILBOX_STRICT {
+    rcpt = "{{IWB_MAIL_USER}}@{{IWB_DOMAIN}}";
+    apply {
+      actions {
+        add_header = 1.8;
+        reject = 3.2;
+      }
+    }
+  }
+}

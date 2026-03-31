@@ -1,0 +1,9 @@
+# includes/setup/configs/mail/rspamd/greylist.conf.template
+
+# This is a rendered file for domain {{IWB_DOMAIN}}
+# Please do not edit here, this template is built into the docker container
+
+enabled = true;
+timeout = 15min;
+expire = 2d;
+message = "Try again later";

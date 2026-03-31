@@ -15,6 +15,15 @@ case "$IWB_PERSISTENT_STORAGE" in
     fi
     ;;
 
+  r2)
+    log "Storage provider: Cloudflare R2"
+    log "Setup and verify Cloudflare R2 credentials..."
+    if ! source /var/setup/scripts/storage-providers/r2/r2-setup.sh; then
+      log "$ERR_PREFIX Cloudflare R2 setup failed."
+      (return 1 2>/dev/null) || exit 1
+    fi
+    ;;
+
   "")
     echo -e "$IWB_PREFIX $ERR_PREFIX No persistent storage backend selected. Aborting."
     (return 1 2>/dev/null) || exit 1

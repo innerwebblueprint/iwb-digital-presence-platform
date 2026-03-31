@@ -14,7 +14,8 @@ LOG_FILE="/var/log/iwb-restore.log"
 
 # Load environment and functions
 source /var/setup/scripts/setup-env.sh
-source /var/setup/scripts/storage-providers/storj/storj-functions.sh
+source /var/setup/scripts/storage-providers/storage-router.sh
+source /var/setup/scripts/storage-providers/storage-functions.sh
 
 # Redirect all output of log function to console and log file
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -35,7 +36,7 @@ YEAR=$(date +%Y)
 # false is empty string $TIMESTAMP
 if [ -z "$TIMESTAMP" ] || [ "$TIMESTAMP" = "latest" ]; then
   ARCHIVE_BASENAME="${IWB_DOMAIN}_${DATASET}_latest.tar.gz"
-  REMOTE_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/IWBDPP/${DATASET}/latest/${ARCHIVE_BASENAME}"
+  REMOTE_KEY="$(storage_key_latest "$DATASET" "$ARCHIVE_BASENAME")"
 else
   if [[ "$TIMESTAMP" =~ ^[0-9]{4}$ ]]; then
     TIMESTAMP="${YEAR}_${TIMESTAMP:0:2}_${TIMESTAMP:2:2}"
@@ -51,14 +52,14 @@ mkdir -p "$TMP_RESTORE_DIR"
 
 ARCHIVE_PATH="$TMP_RESTORE_DIR/$ARCHIVE_BASENAME"
 
-# --- Download from Storj ---
+# --- Download from configured provider ---
 log "Attempting to restore [$DATASET]"
 log "Restore path: $ARCHIVE_BASENAME ..."
 
-if storj_download "$REMOTE_KEY" "$ARCHIVE_PATH"; then
+if storage_download "$REMOTE_KEY" "$ARCHIVE_PATH"; then
   log "Download succeeded, proceeding with restore..."
 else
-  log "$ERR_PREFIX: Failed to download backup from Storj."
+  log "$ERR_PREFIX: Failed to download backup from $(storage_provider_name)."
   (return 1 2>/dev/null) || exit 1
 fi
 

@@ -4,7 +4,71 @@
 : "${IWB_DOMAIN:?IWB_DOMAIN not set}"
 : "${IWB_MAIL_USER:?IWB_MAIL_USER not set}"
 : "${IWB_MAIL_PASS:?IWB_MAIL_PASS not set}"
-: "${IWB_STORJ_WPOPS_BUCKET:?IWB_STORJ_WPOPS_BUCKET not set}"
+: "${IWB_PERSISTENT_STORAGE:=storj}"
+: "${IWB_LOCAL_DEV:=false}"
+: "${IWB_SSL_SELF_SIGNED_FALLBACK:=false}"
+
+normalize_autogen_env_var() {
+  local var_name="$1"
+  local current_value="${!var_name-}"
+  local trimmed
+
+  trimmed="$(printf '%s' "${current_value}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
+  if [ -z "${trimmed}" ] || [[ "${trimmed}" == \#* ]]; then
+    export "${var_name}="
+  else
+    export "${var_name}=${trimmed}"
+  fi
+}
+
+normalize_autogen_env_var IWB_MYSQL_ROOT_PASSWORD
+normalize_autogen_env_var IWB_POSTFIXADMIN_SQL_PASSWORD
+normalize_autogen_env_var IWB_WP_MYSQL_PASSWORD
+normalize_autogen_env_var IWB_RSPAMD_CONTROLLER_PASSWORD
+normalize_autogen_env_var IWB_RSPAMD_CONTROLLER_ENABLE_PASSWORD
+
+IWB_R2_MEDIA_PUBLIC_BASE_URL_FROM_ENV="${IWB_R2_MEDIA_PUBLIC_BASE_URL-}"
+if [ -n "${IWB_R2_MEDIA_PUBLIC_BASE_URL_FROM_ENV}" ]; then
+  export IWB_R2_MEDIA_PUBLIC_BASE_URL_EXPLICIT=true
+else
+  export IWB_R2_MEDIA_PUBLIC_BASE_URL_EXPLICIT=false
+fi
+
+case "${IWB_PERSISTENT_STORAGE}" in
+  storj)
+    : "${IWB_STORJ_WPOPS_BUCKET:?IWB_STORJ_WPOPS_BUCKET not set}"
+    : "${IWB_STORJ_MEDIA_BUCKET:=${COMPOSE_PROJECT_NAME}media}"
+    : "${IWB_STORJ_MEDIA_PUBLIC_BASE_URL:=http://link.storjshare.io/raw/${IWB_STORJ_MEDIA_KEY}/${IWB_STORJ_MEDIA_BUCKET}}"
+    export IWB_STORAGE_BUCKET="${IWB_STORJ_WPOPS_BUCKET}"
+    : "${IWB_MEDIA_PROXY_BASE_URL:=${IWB_STORJ_MEDIA_PUBLIC_BASE_URL}}"
+    ;;
+  r2)
+    : "${IWB_R2_ACCOUNT_ID:?IWB_R2_ACCOUNT_ID not set}"
+    : "${IWB_R2_ACCESS_KEY_ID:?IWB_R2_ACCESS_KEY_ID not set}"
+    : "${IWB_R2_SECRET_ACCESS_KEY:?IWB_R2_SECRET_ACCESS_KEY not set}"
+    : "${IWB_R2_BUCKET:?IWB_R2_BUCKET not set}"
+    : "${IWB_R2_MEDIA_BUCKET:=${IWB_R2_BUCKET}}"
+    : "${IWB_R2_REGION:=auto}"
+    : "${IWB_R2_MEDIA_PUBLIC_BASE_URL:=https://${IWB_R2_MEDIA_BUCKET}.${IWB_R2_ACCOUNT_ID}.r2.cloudflarestorage.com}"
+    export IWB_STORAGE_BUCKET="${IWB_R2_BUCKET}"
+    : "${IWB_MEDIA_PROXY_BASE_URL:=${IWB_R2_MEDIA_PUBLIC_BASE_URL}}"
+    ;;
+  *)
+    echo "[IWB] ERROR Unsupported storage provider: '${IWB_PERSISTENT_STORAGE}'"
+    (return 1 2>/dev/null) || exit 1
+    ;;
+esac
+
+if [[ "${IWB_MEDIA_PROXY_BASE_URL}" =~ ^[A-Za-z][A-Za-z0-9+.-]*://([^/]+) ]]; then
+  IWB_MEDIA_PROXY_BASE_HOST="${BASH_REMATCH[1]}"
+else
+  IWB_MEDIA_PROXY_BASE_HOST=""
+fi
+
+: "${IWB_MEDIA_PROXY_HOST:=${IWB_MEDIA_PROXY_BASE_HOST}}"
+export IWB_MEDIA_PROXY_BASE_URL
+export IWB_MEDIA_PROXY_HOST
 
 # Default module if not explicitly passed
 if [ -z "${MODULE}" ]; then
@@ -44,12 +108,21 @@ export IWB_MARIADB_PID_FILE="${IWB_STATE_DIR}/mariadb-setup.pid"
 # === Storj Backup Keys ===
 export IWB_PA_SQL_BACKUP_PATH="${IWB_BACKUP_DIR}/postfixadmin.sql"
 
-export IWB_STORJ_MAIL_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/backups/mail/${IWB_DOMAIN}_mail_backup.tar.gz"
+case "${IWB_PERSISTENT_STORAGE}" in
+  storj)
+    export IWB_STORAGE_URI_SCHEME="sj"
+    ;;
+  r2)
+    export IWB_STORAGE_URI_SCHEME="s3"
+    ;;
+esac
 
-export IWB_STORJ_PA_DB_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/mail/db/postfixadmin_${IWB_DOMAIN}.sql"
-export IWB_STORJ_MAIL_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/mail/email/${IWB_DOMAIN}_maildir.tar.gz"
-export IWB_STORJ_CERT_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/certs/${IWB_DOMAIN}_certs.tar.gz"
-export IWB_DKIM_CERT_BACKUP_KEY="sj://${IWB_STORJ_WPOPS_BUCKET}/certs/${IWB_DOMAIN}_dkim_certs.tar.gz"
+export IWB_STORJ_MAIL_BACKUP_KEY="${IWB_STORAGE_URI_SCHEME}://${IWB_STORAGE_BUCKET}/backups/mail/${IWB_DOMAIN}_mail_backup.tar.gz"
+
+export IWB_STORJ_PA_DB_KEY="${IWB_STORAGE_URI_SCHEME}://${IWB_STORAGE_BUCKET}/mail/db/postfixadmin_${IWB_DOMAIN}.sql"
+export IWB_STORJ_MAIL_KEY="${IWB_STORAGE_URI_SCHEME}://${IWB_STORAGE_BUCKET}/mail/email/${IWB_DOMAIN}_maildir.tar.gz"
+export IWB_STORJ_CERT_BACKUP_KEY="${IWB_STORAGE_URI_SCHEME}://${IWB_STORAGE_BUCKET}/certs/${IWB_DOMAIN}_certs.tar.gz"
+export IWB_DKIM_CERT_BACKUP_KEY="${IWB_STORAGE_URI_SCHEME}://${IWB_STORAGE_BUCKET}/certs/${IWB_DOMAIN}_dkim_certs.tar.gz"
 
 # === Database Admin ===
 # Generate password if not already set or no local state set

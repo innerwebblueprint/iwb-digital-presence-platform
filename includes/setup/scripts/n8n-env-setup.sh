@@ -14,14 +14,16 @@ if [ -f /var/setup/scripts/setup-env.sh ]; then
     # Create a minimal .env file with only the bucket name
     cat > /var/setup/.env <<EOF
 # Minimal environment for n8n - only contains non-sensitive variables
-IWB_STORJ_WPOPS_BUCKET=${IWB_STORJ_WPOPS_BUCKET}
+IWB_PERSISTENT_STORAGE=${IWB_PERSISTENT_STORAGE}
+IWB_STORAGE_BUCKET=${IWB_STORAGE_BUCKET}
+IWB_STORJ_WPOPS_BUCKET=${IWB_STORAGE_BUCKET}
 EOF
     
     # Set restrictive permissions - only n8n can read
     chown n8n:n8n /var/setup/.env
     chmod 600 /var/setup/.env
     
-    echo "Created minimal environment file for n8n with bucket name: ${IWB_STORJ_WPOPS_BUCKET}"
+    echo "Created minimal environment file for n8n with bucket name: ${IWB_STORAGE_BUCKET}"
 else
     echo "Warning: setup-env.sh not found, creating empty n8n environment"
     touch /var/setup/.env

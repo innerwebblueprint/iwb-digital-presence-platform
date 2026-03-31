@@ -18,6 +18,22 @@ fi
 # Create crontab file if it doesn't exist
 CRON_FILE="/etc/crontabs/root"
 
+if [ ! -f "$CRON_FILE" ]; then
+  touch "$CRON_FILE"
+fi
+
+# Local development safety: never schedule automated IWB cron jobs
+if [ "${IWB_LOCAL_DEV}" = "true" ]; then
+  log "IWB_LOCAL_DEV=true detected. Removing IWB cron jobs and skipping cron schedule setup."
+  sed -i '/iwb-backup\.sh/d' "$CRON_FILE"
+  sed -i '/iwb-backup-cleanup\.sh/d' "$CRON_FILE"
+  sed -i '/iwb-logtest\.sh/d' "$CRON_FILE"
+  sed -i '/wp-cron\.php/d' "$CRON_FILE"
+  sed -i '/certbot renew --quiet --deploy-hook/d' "$CRON_FILE"
+  MODULE=$CALL_MODULE
+  (return 0 2>/dev/null) || exit 0
+fi
+
 # Ensure correct SHELL and PATH at top of crontab
 grep -q "SHELL=" "$CRON_FILE" || echo "SHELL=/bin/bash" >> "$CRON_FILE"
 grep -q "PATH=" "$CRON_FILE" || echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" >> "$CRON_FILE"

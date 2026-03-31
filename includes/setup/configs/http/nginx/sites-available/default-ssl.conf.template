@@ -21,7 +21,7 @@ server {
     access_log /var/log/nginx/{{IWB_DOMAIN}}_ssl_access.log;
     error_log /var/log/nginx/{{IWB_DOMAIN}}_ssl_error.log;
 
-    client_max_body_size 64M;
+    client_max_body_size 350M;
 
     # Main WordPress rule
     location / {
@@ -52,7 +52,7 @@ server {
     }
 }
 
-server { # Storj http reverse proxy
+server { # Media reverse proxy
     listen 443 ssl;
     server_name {{COMPOSE_PROJECT_NAME}}media.{{IWB_DOMAIN}};
 
@@ -65,8 +65,8 @@ server { # Storj http reverse proxy
     location / {
         resolver 127.0.0.1;                                       
         rewrite ^/(.*)$ /$1 break;
-        proxy_pass http://link.storjshare.io/raw/{{IWB_STORJ_MEDIA_KEY}}/{{IWB_STORJ_MEDIA_BUCKET}}/$1;
-        proxy_set_header Host link.storjshare.io;
+        proxy_pass {{IWB_MEDIA_PROXY_BASE_URL}}/$1;
+        proxy_set_header Host {{IWB_MEDIA_PROXY_HOST}};
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_http_version 1.1;

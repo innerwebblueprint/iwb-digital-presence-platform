@@ -1,23 +1,38 @@
 # syntax=docker/dockerfile:1
 
 # Stage 1: Build Akash provider-services binary
-FROM golang:1.23-alpine AS akash-builder
-RUN apk add --no-cache git curl
+FROM golang:1.25-alpine AS akash-builder
+ARG AKASH_VERSION=latest
+RUN apk add --no-cache git curl jq wget ca-certificates build-base linux-headers pkgconf eudev-dev
+ENV PATH="/usr/local/go/bin:${PATH}"
 WORKDIR /build
-RUN AKASH_VERSION=$(curl -s https://api.github.com/repos/akash-network/provider/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4) && \
-    echo "Building Akash provider-services ${AKASH_VERSION}..." && \
-    git clone --depth 1 --branch ${AKASH_VERSION} https://github.com/akash-network/provider.git && \
-    cd provider && \
-    GOTOOLCHAIN=auto CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN set -e; \
+    if [ "$AKASH_VERSION" = "latest" ]; then \
+    AKASH_VERSION=$(curl -fsSL https://api.github.com/repos/akash-network/provider/releases/latest | jq -r '.tag_name'); \
+    fi; \
+    test -n "$AKASH_VERSION"; \
+    echo "Attempting Akash provider-services source build for ${AKASH_VERSION}..."; \
+    rm -rf /build/provider; \
+    git clone --depth 1 --branch "$AKASH_VERSION" https://github.com/akash-network/provider.git /build/provider; \
+    WASMVM_VERSION=$(cd /build/provider && go list -mod=readonly -m -f '{{ .Version }}' github.com/CosmWasm/wasmvm/v3); \
+    mkdir -p /build/provider/.cache/lib; \
+    wget -q -O /build/provider/.cache/lib/libwasmvm_muslc.x86_64.a "https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}/libwasmvm_muslc.x86_64.a"; \
+    if (cd /build/provider && \
+    GOTOOLCHAIN=local CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
     go build -mod=readonly \
-    -tags "osusergo,netgo,static_build" \
-    -ldflags="-s -w \
+    -tags "osusergo,netgo,muslc,gcc,ledger" \
+    -ldflags="-s -w -linkmode=external -extldflags \"-L/build/provider/.cache/lib -lm -Wl,-z,muldefs\" \
     -X github.com/akash-network/provider/version.Name=provider-services \
     -X github.com/akash-network/provider/version.AppName=provider-services \
     -X github.com/akash-network/provider/version.Version=${AKASH_VERSION}" \
     -o /build/provider-services \
-    ./cmd/provider-services && \
-    echo "✓ provider-services ${AKASH_VERSION} compiled successfully"
+    ./cmd/provider-services); then \
+    echo "✓ provider-services ${AKASH_VERSION} compiled successfully"; \
+    else \
+    echo "ERROR: provider-services build failed for required version ${AKASH_VERSION}"; \
+    exit 1; \
+    fi; \
+    echo "$AKASH_VERSION" > /build/provider-services.version
 
 # Stage 2: Build Pigeonhole with unfinished extensions (for ereject support)
 FROM alpine:3.21 AS pigeonhole-builder
@@ -57,7 +72,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install required packages
 # Core system utilities and setup tools
 RUN apk update && apk add --no-cache \
-    bash rsyslog curl nano coreutils iputils zip unzip wget supervisor cronie dnsmasq tree sudo jq bc netcat-openbsd
+    bash rsyslog curl nano coreutils iputils zip unzip wget supervisor cronie dnsmasq tree sudo jq bc netcat-openbsd aws-cli eudev-libs
 
 # Python & build tools
 RUN apk add --no-cache \
@@ -150,13 +165,6 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
     printf '#!/bin/sh\nexec /usr/local/bin/wp-cli.phar --allow-root "$@"\n' > /usr/local/bin/wp && \
     chmod +x /usr/local/bin/wp
 
-# Install iwb-akash-deploy from GitHub repository 
-RUN cd /tmp && \
-    wget https://github.com/innerwebblueprint/iwb-akash-deploy/raw/refs/heads/master/iwb-akash-deploy.py -O iwb-akash-deploy && \
-    mv iwb-akash-deploy /usr/local/bin/iwb-akash-deploy && \
-    chmod +x /usr/local/bin/iwb-akash-deploy && \
-    echo "✓ iwb-akash-deploy installed to /usr/local/bin"
-
 # Install fonts for imagemagik
 RUN apk add --no-cache \
     msttcorefonts-installer && update-ms-fonts && fc-cache -f
@@ -187,6 +195,16 @@ RUN mkdir -p /var/www/html/n8n /home/n8n && \
 #    chmod 440 /etc/sudoers.d/n8n && \
 #    touch /var/log/n8n-commands.log && \
 #    chown n8n:n8n /var/log/n8n-commands.log 
+
+# Install iwb-akash-deploy from GitHub repository 
+ARG IWB_AKASH_DEPLOY_CACHE_BUST=0
+RUN cd /tmp && \
+    echo "IWB_AKASH_DEPLOY_CACHE_BUST=${IWB_AKASH_DEPLOY_CACHE_BUST}" && \
+    wget https://github.com/innerwebblueprint/iwb-akash-deploy/raw/refs/heads/master/iwb-akash-deploy.py -O iwb-akash-deploy && \
+    mv iwb-akash-deploy /usr/local/bin/iwb-akash-deploy && \
+    chmod +x /usr/local/bin/iwb-akash-deploy && \
+    echo "✓ iwb-akash-deploy installed to /usr/local/bin"
+
 
 # Ensure correct vmail user and group
 RUN deluser vmail 2>/dev/null || true && \

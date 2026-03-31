@@ -104,6 +104,7 @@ Builds Docker image and pushes to Docker Hub.
 - `--no-cache` - Build without cache (force full rebuild)
 - `--skip-push` - Build only, don't push to Docker Hub
 - `--platform <platforms>` - Specify platform (e.g., linux/amd64,linux/arm64)
+- `--feature-tag <name>` - Build feature-scoped tags for testing (does not update `dev-latest`)
 
 **Examples:**
 ```bash
@@ -111,12 +112,14 @@ Builds Docker image and pushes to Docker Hub.
 ./scripts/build-and-push.sh --no-cache         # Force rebuild
 ./scripts/build-and-push.sh --skip-push        # Build only
 ./scripts/build-and-push.sh --platform linux/amd64,linux/arm64
+./scripts/build-and-push.sh --feature-tag dual-storj-r2-migration
 ```
 
 **What it does:**
 1. Reads version from `VERSION` file
 2. Determines appropriate Docker tags based on version type:
    - **Dev builds** (`dev-b###`): Tags as `dev-b005` and `dev-latest`
+   - **Feature dev builds** (`--feature-tag <name>`): Tags as `feature-<name>-<version>` and `feature-<name>-latest`
    - **Production** (`v#.#.#`): Tags as `v1.0.0`, `1.0.0`, `1.0`, `1`, and `latest`
 3. Builds Docker image with all tags
 4. Pushes to Docker Hub (`iwbp/iwbdpp`)

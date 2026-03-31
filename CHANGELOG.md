@@ -14,10 +14,147 @@ Version format:
 - `-dev.N`: Pre-release development build number
 
 ## [Unreleased]
-
 ### Added
 ### Changed
 ### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.39] - 2026-03-30
+
+> **Commit Summary:** fix(akash): retry storage init and send wallet setup failure warning
+
+### Added
+- Added an explicit Akash wallet warning email when startup cannot complete wallet setup after storage-provider retry attempts, so failures are visible instead of silent.
+### Changed
+- Akash wallet startup now retries storage-provider initialization before restore/create operations to better tolerate transient storage readiness issues during concurrent startup tasks.
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.38] - 2026-03-30
+
+> **Commit Summary:** feat(storage): add guarded source-delete mode to storage migration utility
+
+### Added
+- Added `--delete` mode to `includes/setup/scripts/storage-providers/migrate-storage.sh` so operators can remove migrated backup archives from the old provider after verification.
+- Added interactive `DELETE` confirmation for non-dry-run delete operations to reduce accidental destructive use.
+### Changed
+- Extended the storage migration utility to support provider-native object deletion for both Storj and Cloudflare R2.
+- Refactored prefix processing in the migration utility into shared helpers so copy and delete flows stay aligned.
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.37] - 2026-03-28
+
+> **Commit Summary:** fix(akash): enforce latest-only build and add AKT/ACT balance reporting
+
+### Added
+### Changed
+- Akash `provider-services` build path now uses an upstream-aligned Alpine-compatible compile flow for latest releases, including wasmvm musl static library resolution and CGO-enabled external linking.
+- Akash wallet notification emails now report both token balances (`AKT` from `uakt` and `ACT` from `uact`) from live `provider-services query bank balances` output.
+### Fixed
+- Removed Akash fallback-to-older-tag behavior; Docker build now enforces strict `AKASH_VERSION=latest` and fails fast if the latest upstream tag is not buildable.
+- Added required runtime dependency (`eudev-libs`) for latest Akash binary compatibility in the final image.
+- Akash balance parsing no longer assumes the first bank balance entry is `uakt`; balances are now denom-specific to support post-upgrade ACT-enabled wallets.
+- Akash balance display formatting now consistently renders leading-zero token values (for example `0.543312`) and stable USD precision in notification emails.
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.36] - 2026-03-27
+
+> **Commit Summary:** fix(build): keep akash latest mode resilient with auto-fallback to newest buildable release
+
+### Added
+### Changed
+- Akash source build now keeps `AKASH_VERSION=latest` semantics while automatically scanning recent non-prerelease provider tags and compiling the newest tag that builds successfully.
+- Akash builder now uses upstream-aligned build tags (`osusergo,netgo,muslc,gcc`) and records the resolved compiled tag in `/build/provider-services.version`.
+### Fixed
+- Docker builds no longer hard-fail when the newest Akash release tag is temporarily unbuildable upstream; build flow now degrades gracefully to the next buildable recent release.
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.35] - 2026-03-27
+
+> **Commit Summary:** fix(build): stabilize akash source build and raise wordpress upload limit
+
+### Added
+### Changed
+- Increased WordPress upload ceiling to `350M` by aligning Nginx `client_max_body_size` and PHP `upload_max_filesize`/`post_max_size` limits.
+- Akash `provider-services` source-build stage now uses a newer Go toolchain and robust release tag resolution to avoid upstream build breakage during Docker builds.
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.34] - 2026-03-27
+
+> **Commit Summary:** feat: add default rspamd anti-spam tuning templates and setup wiring
+
+### Added
+- New Rspamd local config templates for stronger server-side spam mitigation:
+  - `includes/setup/configs/mail/rspamd/actions.conf.template`
+  - `includes/setup/configs/mail/rspamd/settings.conf.template`
+  - `includes/setup/configs/mail/rspamd/redis.conf.template`
+  - `includes/setup/configs/mail/rspamd/greylist.conf.template`
+  - `includes/setup/configs/mail/rspamd/classifier-bayes.conf.template`
+### Changed
+- `includes/setup/scripts/setup-rspamd.sh` now renders and symlinks Rspamd local overrides for actions, recipient-scoped settings, Redis, greylisting, and Bayes classifier Redis server binding.
+### Fixed
+- Default Rspamd bootstrap now includes explicit local Redis and greylist configuration templates to reduce "module enabled but unconfigured" drift across deployments.
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.33] - 2026-03-27
+
+> **Commit Summary:** feat: add provider-neutral storage with cloudflare r2 support
+
+### Added
+- Provider-neutral storage abstraction script: `includes/setup/scripts/storage-providers/storage-functions.sh`.
+- Cloudflare R2 backend setup and operations scripts:
+  - `includes/setup/scripts/storage-providers/r2/r2-setup.sh`
+  - `includes/setup/scripts/storage-providers/r2/r2-functions.sh`
+- Storage migration utility with resume-state and verification:
+  - `includes/setup/scripts/storage-providers/migrate-storage.sh`
+- Startup symlink command for migration utility: `iwb-migrate-storage.sh`.
+### Changed
+- Extended storage router to support `IWB_PERSISTENT_STORAGE=r2` alongside `storj`.
+- Refactored backup and restore runtime to use provider-neutral storage operations:
+  - `includes/setup/scripts/backup/iwb-backup.sh`
+  - `includes/setup/scripts/backup/iwb-restore.sh`
+- Refactored backup cleanup flow to use provider-neutral list/delete operations:
+  - `includes/setup/scripts/backup/iwb-backup-cleanup.sh`
+- Refactored Akash wallet backup upload path to use configured cloud provider instead of Storj-only logic.
+- Updated environment bootstrap logic to validate provider-specific variables and expose unified storage aliases.
+- Updated n8n minimal environment export to include provider-neutral storage variables while preserving legacy compatibility.
+- Updated environment template with Cloudflare R2 credential variables and provider option guidance.
+- Updated Docker image package install to include `aws-cli` for R2 S3-compatible operations.
+- Added local development SSL fallback controls (`IWB_LOCAL_DEV`, `IWB_SSL_SELF_SIGNED_FALLBACK`) and self-signed certificate generation path when cloud cert restore fails.
+- Added feature-scoped Docker build tagging option (`--feature-tag`) to avoid overwriting `dev-latest` during branch testing.
+- Media reverse proxy configuration is now provider-neutral, with endpoint/host variables supporting both Storj and Cloudflare R2 media URL patterns.
+- Added dedicated `IWB_R2_MEDIA_BUCKET` support so R2 media proxy defaults can target a separate media bucket from backup/storage buckets.
+- Added explicit Storj/R2 media public base URL env parity (`IWB_STORJ_MEDIA_PUBLIC_BASE_URL`, `IWB_R2_MEDIA_PUBLIC_BASE_URL`) for consistent configuration across providers.
+- Updated `env.template` with prebuilt Storj/R2 media URL examples while keeping override variables blank by default so runtime auto-derivation remains the default behavior.
+- Local mode (`IWB_LOCAL_DEV=true`) now disables IWB automated cron schedule setup and removes existing IWB cron entries to prevent local instances from running backup/cleanup schedules.
+- Cert domain selection now automatically skips `<project>media.<domain>` when `IWB_PERSISTENT_STORAGE=r2` and `IWB_R2_MEDIA_PUBLIC_BASE_URL` is explicitly set (non-empty), avoiding ACME conflicts with externally managed media TLS.
+### Fixed
+- Local self-signed TLS fallback now generates/validates `ssl-dhparams.pem` at modern strength (>=2048-bit) to prevent Nginx startup failure with `dh key too small`.
+- SSL cert issuance now retries once when certbot hits transient ACME `No such authorization` errors, and logs the requested domain set for easier troubleshooting.
+- Mail auth bootstrap now treats blank/comment placeholder password env values as empty before auto-generation, preventing Dovecot SQL auth from using `password=#...` and failing with `using password: NO`.
 ### Removed
 ### Security
 
@@ -630,4 +767,3 @@ Version format:
 - Email stack integration
 - WordPress setup automation
 - n8n platform integration
-

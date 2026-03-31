@@ -53,6 +53,47 @@ if [ -f "$IWB_CONFIGDIR/mail/rspamd/worker-proxy.inc.template" ]; then
   ln -sf "$IWB_CONFIGDIR/mail/rspamd/worker-proxy.inc" "/etc/rspamd/local.d/worker-proxy.inc"
 fi
 
+# Process actions.conf.template
+if [ -f "$IWB_CONFIGDIR/mail/rspamd/actions.conf.template" ]; then
+  echo -e "$IWB_PREFIX Rendering actions.conf.template..."
+  sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+      "$IWB_CONFIGDIR/mail/rspamd/actions.conf.template" > "$IWB_CONFIGDIR/mail/rspamd/actions.conf"
+  ln -sf "$IWB_CONFIGDIR/mail/rspamd/actions.conf" "/etc/rspamd/local.d/actions.conf"
+fi
+
+# Process settings.conf.template
+if [ -f "$IWB_CONFIGDIR/mail/rspamd/settings.conf.template" ]; then
+  echo -e "$IWB_PREFIX Rendering settings.conf.template..."
+  sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+      -e "s|{{IWB_MAIL_USER}}|$IWB_MAIL_USER|g" \
+      "$IWB_CONFIGDIR/mail/rspamd/settings.conf.template" > "$IWB_CONFIGDIR/mail/rspamd/settings.conf"
+  ln -sf "$IWB_CONFIGDIR/mail/rspamd/settings.conf" "/etc/rspamd/local.d/settings.conf"
+fi
+
+# Process redis.conf.template
+if [ -f "$IWB_CONFIGDIR/mail/rspamd/redis.conf.template" ]; then
+  echo -e "$IWB_PREFIX Rendering redis.conf.template..."
+  sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+      "$IWB_CONFIGDIR/mail/rspamd/redis.conf.template" > "$IWB_CONFIGDIR/mail/rspamd/redis.conf"
+  ln -sf "$IWB_CONFIGDIR/mail/rspamd/redis.conf" "/etc/rspamd/local.d/redis.conf"
+fi
+
+# Process greylist.conf.template
+if [ -f "$IWB_CONFIGDIR/mail/rspamd/greylist.conf.template" ]; then
+  echo -e "$IWB_PREFIX Rendering greylist.conf.template..."
+  sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+      "$IWB_CONFIGDIR/mail/rspamd/greylist.conf.template" > "$IWB_CONFIGDIR/mail/rspamd/greylist.conf"
+  ln -sf "$IWB_CONFIGDIR/mail/rspamd/greylist.conf" "/etc/rspamd/local.d/greylist.conf"
+fi
+
+# Process classifier-bayes.conf.template
+if [ -f "$IWB_CONFIGDIR/mail/rspamd/classifier-bayes.conf.template" ]; then
+  echo -e "$IWB_PREFIX Rendering classifier-bayes.conf.template..."
+  sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+      "$IWB_CONFIGDIR/mail/rspamd/classifier-bayes.conf.template" > "$IWB_CONFIGDIR/mail/rspamd/classifier-bayes.conf"
+  ln -sf "$IWB_CONFIGDIR/mail/rspamd/classifier-bayes.conf" "/etc/rspamd/local.d/classifier-bayes.conf"
+fi
+
 # Process redis.conf.template
 if [ -f "$IWB_CONFIGDIR/system/redis/redis.conf.template" ]; then
   echo -e "$IWB_PREFIX Rendering redis.conf.template..."
