@@ -103,7 +103,6 @@ Builds Docker image and pushes to Docker Hub.
 **Options:**
 - `--no-cache` - Build without cache (force full rebuild)
 - `--skip-push` - Build only, don't push to Docker Hub
-- `--platform <platforms>` - Specify platform (e.g., linux/amd64,linux/arm64)
 - `--feature-tag <name>` - Build feature-scoped tags for testing (does not update `dev-latest`)
 
 **Examples:**
@@ -111,7 +110,6 @@ Builds Docker image and pushes to Docker Hub.
 ./scripts/build-and-push.sh                    # Standard build and push
 ./scripts/build-and-push.sh --no-cache         # Force rebuild
 ./scripts/build-and-push.sh --skip-push        # Build only
-./scripts/build-and-push.sh --platform linux/amd64,linux/arm64
 ./scripts/build-and-push.sh --feature-tag dual-storj-r2-migration
 ```
 

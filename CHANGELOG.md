@@ -14,9 +14,18 @@ Version format:
 - `-dev.N`: Pre-release development build number
 
 ## [Unreleased]
+> **Commit Summary:** refactor(build): simplify build workflow and remove unused platform support
+
 ### Added
+- Added a `--yes` option to `scripts/build-and-push.sh` so wrapper scripts can reuse the shared build/push flow non-interactively.
 ### Changed
+- Standardized project script versioning around `v#.#.#-dev.N` for development builds and `v#.#.#` for releases.
+- Refactored `scripts/dev-deploy.sh` and `scripts/release.sh` to call `scripts/build-and-push.sh` instead of maintaining separate Docker build logic.
+- Narrowed the build workflow to standard Linux server targets by removing unused `--platform` support from `scripts/build-and-push.sh`.
+- Updated build script documentation to match the current SemVer-based development workflow and shared build entrypoint.
 ### Fixed
+- Removed remaining legacy `dev-b###` handling from build and release scripts so version bumps now match the repository's actual `VERSION` format.
+- Shared Docker builds now consistently include the Akash deploy cache-busting build arg because wrapper scripts reuse `scripts/build-and-push.sh`.
 ### Removed
 ### Security
 

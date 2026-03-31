@@ -8,7 +8,6 @@
 # Options:
 #   --no-cache    Build without cache
 #   --skip-push   Build only, don't push to Docker Hub
-#   --platform    Specify platform (e.g., linux/amd64,linux/arm64)
 #   --feature-tag Build feature-scoped tags (e.g., dual-storj-r2-migration)
 #   --yes         Skip push confirmation prompt
 #
@@ -29,7 +28,6 @@ DOCKER_REPO="iwbp/iwbdpp"
 # Parse options
 NO_CACHE=""
 SKIP_PUSH=false
-PLATFORM=""
 FEATURE_TAG=""
 ASSUME_YES=false
 
@@ -42,10 +40,6 @@ while [[ $# -gt 0 ]]; do
         --skip-push)
             SKIP_PUSH=true
             shift
-            ;;
-        --platform)
-            PLATFORM="--platform $2"
-            shift 2
             ;;
         --feature-tag)
             FEATURE_TAG="$2"
@@ -167,10 +161,10 @@ info "IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST"
 
 # Build the image
 log "Building Docker image..."
-info "Command: docker build $NO_CACHE $PLATFORM --build-arg IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST ${TAGS[*]} ."
+info "Command: docker build $NO_CACHE --build-arg IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST ${TAGS[*]} ."
 echo ""
 
-docker build $NO_CACHE $PLATFORM --build-arg "IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST" "${TAGS[@]}" . || error "Docker build failed"
+docker build $NO_CACHE --build-arg "IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST" "${TAGS[@]}" . || error "Docker build failed"
 
 log "Docker build successful!"
 echo ""

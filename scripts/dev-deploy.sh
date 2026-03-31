@@ -93,6 +93,19 @@ step() {
     echo -e "${CYAN}${BOLD}==>${NC}${BOLD} $1${NC}"
 }
 
+extract_unreleased_commit_summary() {
+    local changelog_file="$1"
+    awk '
+    /^## \[Unreleased\]/ { in_unreleased = 1; next }
+    /^## \[/ && in_unreleased { exit }
+    in_unreleased && /^> \*\*Commit Summary:\*\*/ {
+        sub(/^> \*\*Commit Summary:\*\* /, "")
+        print
+        exit
+    }
+    ' "$changelog_file"
+}
+
 # Change to project root
 cd "$PROJECT_ROOT"
 
@@ -135,7 +148,7 @@ if ! git diff-index --quiet HEAD --; then
     # Extract commit message from CHANGELOG
     echo ""
     if [ -f "$CHANGELOG_FILE" ]; then
-        COMMIT_MSG=$(grep "^> \*\*Commit Summary:\*\*" "$CHANGELOG_FILE" | head -n1 | sed 's/^> \*\*Commit Summary:\*\* //')
+        COMMIT_MSG=$(extract_unreleased_commit_summary "$CHANGELOG_FILE")
         
         if [ -n "$COMMIT_MSG" ]; then
             info "Auto-generated commit message from CHANGELOG:"
