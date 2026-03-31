@@ -147,10 +147,15 @@ grep -q "/usr/bin/certbot renew --quiet --deploy-hook" "$CRON_FILE" || \
 echo "0 3 * * * /usr/bin/certbot renew --quiet --deploy-hook \"/var/setup/scripts/cert-renew-hook.sh\" > /dev/null 2>&1" >> "$CRON_FILE"
 
 
-# Nightly backup cleanup (randomized minute within 04:00–04:59)
-CLEANUP_MIN=$(compute_offset "cleanup-nightly" 0 60)
+# Nightly backup cleanup
+#
+# Cron runs on the container's timezone, which is currently UTC in production.
+# Schedule cleanup for 09:00 UTC so it runs at 02:00 Pacific during daylight time.
+# If we later make the container timezone-aware, this can go back to a local 02:00 entry.
+CLEANUP_MIN=0
+CLEANUP_HOUR=9
 sed -i '/iwb-backup-cleanup\.sh all all/d' "$CRON_FILE"
-echo "$CLEANUP_MIN 4 * * * . /var/data/state/docker-env.sh && /var/setup/scripts/backup/iwb-backup-cleanup.sh all all > /dev/null 2>&1" >> "$CRON_FILE"
+echo "$CLEANUP_MIN $CLEANUP_HOUR * * * . /var/data/state/docker-env.sh && /var/setup/scripts/backup/iwb-backup-cleanup.sh all all > /dev/null 2>&1" >> "$CRON_FILE"
 
 
 log "Cron jobs configured."

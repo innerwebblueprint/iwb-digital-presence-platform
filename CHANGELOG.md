@@ -15,8 +15,11 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(backup): run nightly cleanup at 2am pacific time
+
 ### Added
 ### Changed
+- Adjusted nightly backup cleanup scheduling to run at 09:00 UTC so production containers currently operating on UTC execute cleanup at 2:00 AM Pacific daylight time.
 ### Fixed
 ### Removed
 ### Security
