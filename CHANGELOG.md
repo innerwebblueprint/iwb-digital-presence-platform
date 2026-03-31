@@ -14,6 +14,16 @@ Version format:
 - `-dev.N`: Pre-release development build number
 
 ## [Unreleased]
+
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.42] - 2026-03-30
 > **Commit Summary:** refactor(build): simplify build workflow and remove unused platform support
 
 ### Added
@@ -28,6 +38,9 @@ Version format:
 - Shared Docker builds now consistently include the Akash deploy cache-busting build arg because wrapper scripts reuse `scripts/build-and-push.sh`.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
