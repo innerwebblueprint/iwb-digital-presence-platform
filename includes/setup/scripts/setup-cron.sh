@@ -149,11 +149,11 @@ echo "0 3 * * * /usr/bin/certbot renew --quiet --deploy-hook \"/var/setup/script
 
 # Nightly backup cleanup (randomized minute within 04:00–04:59)
 CLEANUP_MIN=$(compute_offset "cleanup-nightly" 0 60)
-grep -q "iwb-backup-cleanup.sh all all" "$CRON_FILE" || echo "$CLEANUP_MIN 4 * * * . /var/data/state/docker-env.sh && iwb-backup-cleanup.sh all all > /dev/null 2>&1" >> "$CRON_FILE"
+sed -i '/iwb-backup-cleanup\.sh all all/d' "$CRON_FILE"
+echo "$CLEANUP_MIN 4 * * * . /var/data/state/docker-env.sh && /var/setup/scripts/backup/iwb-backup-cleanup.sh all all > /dev/null 2>&1" >> "$CRON_FILE"
 
 
 log "Cron jobs configured."
 
 MODULE=$CALL_MODULE
 (return 0 2>/dev/null) || exit 0
-

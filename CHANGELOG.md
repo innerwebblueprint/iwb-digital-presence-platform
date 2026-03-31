@@ -22,6 +22,22 @@ Version format:
 
 ---
 
+## [v1.0.0-dev.40] - 2026-03-30
+
+> **Commit Summary:** fix(backup): restore cleanup execution and tighten retention pruning
+
+### Added
+### Changed
+- Nightly backup cleanup cron now invokes the cleanup script by absolute path and refreshes the cleanup crontab entry on setup so stale entries do not persist.
+- Startup now exposes `iwb-backup-cleanup.sh` alongside the other backup helpers for direct shell use.
+- Snapshot pruning is now age-based, deleting versioned snapshots older than 7 days instead of using a fixed-count retention.
+### Fixed
+- Backup pruning now reliably enforces the intended versioned retention policy for daily, weekly, and monthly intervals once the container is rebuilt with the corrected cleanup wiring.
+### Removed
+### Security
+
+---
+
 ## [v1.0.0-dev.39] - 2026-03-30
 
 > **Commit Summary:** fix(akash): retry storage init and send wallet setup failure warning

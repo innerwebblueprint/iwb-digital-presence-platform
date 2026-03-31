@@ -19,6 +19,7 @@ mkdir -p /var/log/supervisord
 # Make iwb-backup.sh easily executable (use -f flag for restart safety)
 ln -sf /var/setup/scripts/backup/iwb-backup.sh /usr/local/bin/iwb-backup.sh
 ln -sf /var/setup/scripts/backup/iwb-restore.sh /usr/local/bin/iwb-restore.sh
+ln -sf /var/setup/scripts/backup/iwb-backup-cleanup.sh /usr/local/bin/iwb-backup-cleanup.sh
 ln -sf /var/setup/scripts/storage-providers/migrate-storage.sh /usr/local/bin/iwb-migrate-storage.sh
 
 ## Log testing to test cron and debug

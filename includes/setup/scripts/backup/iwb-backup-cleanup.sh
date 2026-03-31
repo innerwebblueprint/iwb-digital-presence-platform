@@ -1,6 +1,6 @@
 #!/bin/bash
 # includes/setup/scripts/backup/iwb-backup-cleanup.sh
-# Prunes old Storj backup archives per dataset/interval based on retention policy.
+# Prunes old backup archives per dataset/interval based on retention policy.
 # Usage:
 #   iwb-backup-cleanup.sh <dataset|all> <interval|all> [--dry-run]
 # Datasets: mail, postfix, ssl, dkim, rspamd, wpdb, wphtml, n8n
@@ -9,6 +9,7 @@
 # - Operates ONLY on versioned paths: sj://$IWB_STORJ_WPOPS_BUCKET/IWBDPP/<dataset>/<interval>/
 # - Never touches latest folder: sj://.../<dataset>/latest/
 # - Hourly: intentionally cycles names; cleanup is skipped (max ~24 keys by design)
+# - Snapshot cleanup is age-based, not count-based
 
 MODULE="BACKUP CLEANUP"
 LOG_FILE="/var/log/iwb-backup-cleanup.log"
@@ -68,7 +69,8 @@ fi
 
 # Retention policy
 # Default counts per interval; can be overridden via env e.g. IWB_RETENTION_DAILY=10
-RETENTION_SNAPSHOT=${IWB_RETENTION_SNAPSHOT:-5}
+# Snapshots are pruned by age because they are intended as short-lived manual checkpoints.
+RETENTION_SNAPSHOT_DAYS=${IWB_RETENTION_SNAPSHOT_DAYS:-7}
 RETENTION_HOURLY=${IWB_RETENTION_HOURLY:-24}
 RETENTION_DAILY=${IWB_RETENTION_DAILY:-7}
 RETENTION_WEEKLY=${IWB_RETENTION_WEEKLY:-4}
@@ -77,7 +79,6 @@ RETENTION_YEARLY=${IWB_RETENTION_YEARLY:-10}
 
 keep_for_interval() {
   case "$1" in
-    snapshot) echo "$RETENTION_SNAPSHOT" ;;
     hourly)   echo "$RETENTION_HOURLY" ;;
     daily)    echo "$RETENTION_DAILY" ;;
     weekly)   echo "$RETENTION_WEEKLY" ;;
@@ -97,6 +98,29 @@ list_objects() {
 
 # Sort objects by name ascending (YYYY_MM_DD sorts correctly lexicographically)
 # For hourly, names are HH and cycle; we skip cleanup.
+
+extract_archive_date() {
+  local archive_name="$1"
+  if [[ "$archive_name" =~ ([0-9]{4}_[0-9]{2}_[0-9]{2})\.tar\.gz$ ]]; then
+    echo "${BASH_REMATCH[1]}"
+    return 0
+  fi
+  return 1
+}
+
+snapshot_is_expired() {
+  local archive_name="$1"
+  local archive_date
+  local cutoff_date
+
+  if ! archive_date="$(extract_archive_date "$archive_name")"; then
+    log "${MODULE} WARN Could not determine snapshot date from filename: ${archive_name}"
+    return 1
+  fi
+
+  cutoff_date="$(date -d "${RETENTION_SNAPSHOT_DAYS} days ago" +%Y_%m_%d)"
+  [[ "$archive_date" < "$cutoff_date" ]]
+}
 
 # Delete an object by full key
 delete_object() {
@@ -126,20 +150,41 @@ for ds in "${TARGET_DATASETS[@]}"; do
       continue
     fi
 
-    keep_count=$(keep_for_interval "$itv")
-    log "${MODULE} Cleanup target: dataset=${ds} interval=${itv} keep=${keep_count}"
-
     # Gather object names
     mapfile -t objs < <(list_objects "$local_prefix")
     total=${#objs[@]}
+
+    if [[ "$itv" == "snapshot" ]]; then
+      cutoff_date="$(date -d "${RETENTION_SNAPSHOT_DAYS} days ago" +%Y_%m_%d)"
+      log "${MODULE} Cleanup target: dataset=${ds} interval=${itv} max-age=${RETENTION_SNAPSHOT_DAYS}d cutoff=${cutoff_date}"
+
+      prune_count=0
+      for name in "${objs[@]}"; do
+        if snapshot_is_expired "$name"; then
+          full_key="${local_prefix}${name}"
+          delete_object "$full_key" || errors=$((errors+1))
+          prune_count=$((prune_count + 1))
+        fi
+      done
+
+      if [[ "$prune_count" -eq 0 ]]; then
+        log "${MODULE} Nothing to prune for snapshots at ${local_prefix}"
+      else
+        log "${MODULE} Snapshot prune complete: removed=${prune_count} scanned=${total}"
+      fi
+      continue
+    fi
+
+    keep_count=$(keep_for_interval "$itv")
+    log "${MODULE} Cleanup target: dataset=${ds} interval=${itv} keep=${keep_count}"
 
     if [[ "$total" -le "$keep_count" ]]; then
       log "${MODULE} Nothing to prune (${total} <= keep ${keep_count}) at ${local_prefix}"
       continue
     fi
 
-    # Sort by name and select oldest extras
-    # name example: <domain>_<dataset>_YYYY_MM_DD.tar.gz (lexicographic works)
+    # Sort by name and select oldest extras.
+    # Versioned archive names end with YYYY_MM_DD.tar.gz so lexicographic order matches age.
     IFS=$'\n' sorted=($(printf '%s\n' "${objs[@]}" | sort))
     prune_count=$(( total - keep_count ))
     to_delete=("${sorted[@]:0:prune_count}")
