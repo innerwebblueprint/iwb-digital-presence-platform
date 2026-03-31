@@ -31,6 +31,80 @@ format_decimal_2() {
     awk -v n="${value:-0}" 'BEGIN { printf "%.2f", (n + 0) }'
 }
 
+initialize_storage_provider_for_akash() {
+    local max_attempts=5
+    local delay_seconds=6
+    local attempt=1
+
+    while [ "$attempt" -le "$max_attempts" ]; do
+        if source /var/setup/scripts/storage-providers/storage-router.sh; then
+            MODULE="AKASH WALLET"
+            log "Storage provider ready for Akash wallet setup (attempt ${attempt}/${max_attempts})"
+            return 0
+        fi
+
+        MODULE="AKASH WALLET"
+        log "WARN: Storage provider initialization failed for Akash wallet setup (attempt ${attempt}/${max_attempts})"
+        attempt=$((attempt + 1))
+        sleep "$delay_seconds"
+    done
+
+    MODULE="AKASH WALLET"
+    return 1
+}
+
+send_wallet_failure_notification() {
+    local reason="$1"
+
+    local smtp_wait_seconds=0
+    while ! nc -z 127.0.0.1 25; do
+        smtp_wait_seconds=$((smtp_wait_seconds + 2))
+        if [ "$smtp_wait_seconds" -ge 120 ]; then
+            log "WARN: Postfix not ready after ${smtp_wait_seconds}s; skipping Akash failure notification email"
+            return 0
+        fi
+        sleep 2
+    done
+
+    local mail_from="${IWB_MAIL_USER}@${IWB_DOMAIN}"
+    local mail_from_name="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+    local mail_from_header="${mail_from_name} <${mail_from}>"
+    local mail_to="$mail_from"
+    local subject="Akash Wallet Setup Warning for ${IWB_DOMAIN}"
+
+    local body
+    body=$(cat <<EOF
+Hello!
+
+Akash wallet startup setup did not complete successfully for ${IWB_DOMAIN}.
+
+Reason:
+- ${reason}
+
+No Akash wallet status email could be generated from backup at this startup.
+You can re-run the setup manually inside the container:
+
+  source /var/setup/scripts/setup-akash-wallet.sh
+
+– Your IWB Server 🌐
+EOF
+)
+
+    if {
+        echo "To: $mail_to"
+        echo "From: $mail_from_header"
+        echo "Reply-To: $mail_from"
+        echo "Subject: $subject"
+        echo "Content-Type: text/plain; charset=UTF-8"
+        echo ""
+        echo "$body"
+    } | /usr/sbin/sendmail -t; then
+        log "Sent Akash wallet failure notification email"
+    else
+        log "WARN: Failed to send Akash wallet failure notification email"
+    fi
+}
+
 # Function to create new Akash wallet
 create_new_akash_wallet() {
     log "Creating new Akash wallet: ${AKASH_WALLET_NAME}"
@@ -331,6 +405,12 @@ EOF
 
 # Main setup function
 setup_akash_wallet() {
+    if ! initialize_storage_provider_for_akash; then
+        log "${ERR_PREFIX} Unable to initialize storage provider after retries; skipping Akash wallet setup"
+        send_wallet_failure_notification "Storage provider initialization failed after retry attempts"
+        return 1
+    fi
+
     log "Checking for existing Akash wallet backup..."
     
     # Try to restore existing wallet backup using existing infrastructure

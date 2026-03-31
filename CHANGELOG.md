@@ -17,8 +17,20 @@ Version format:
 ### Added
 ### Changed
 ### Fixed
-- Akash wallet startup flow now retries storage-provider initialization before restore/create operations, reducing missed Akash wallet emails caused by transient Storj init failures during concurrent startup tasks.
-- Added an explicit Akash wallet warning email when startup cannot complete wallet setup after retries, so failures are visible instead of silent.
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.39] - 2026-03-30
+
+> **Commit Summary:** fix(akash): retry storage init and send wallet setup failure warning
+
+### Added
+- Added an explicit Akash wallet warning email when startup cannot complete wallet setup after storage-provider retry attempts, so failures are visible instead of silent.
+### Changed
+- Akash wallet startup now retries storage-provider initialization before restore/create operations to better tolerate transient storage readiness issues during concurrent startup tasks.
+### Fixed
 ### Removed
 ### Security
 
