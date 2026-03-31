@@ -106,6 +106,27 @@ r2_aws() {
   aws --endpoint-url "https://${IWB_R2_ACCOUNT_ID}.r2.cloudflarestorage.com" "$@"
 }
 
+run_with_timeout() {
+  local timeout_seconds="${IWB_STORAGE_VALIDATE_TIMEOUT_SECONDS:-20}"
+
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$timeout_seconds" "$@"
+  else
+    "$@"
+  fi
+}
+
+ensure_storj_uplink_config() {
+  mkdir -p /root/.config/storj/uplink
+  cat > /root/.config/storj/uplink/config.ini <<EOF
+[analytics]
+enabled = false
+
+[metrics]
+addr =
+EOF
+}
+
 provider_list() {
   local provider="$1"
   local prefix_path="$2"
@@ -332,8 +353,20 @@ validate_provider_env() {
     storj)
       : "${IWB_STORJ_GRANT:?IWB_STORJ_GRANT not set}"
       : "${IWB_STORJ_WPOPS_BUCKET:?IWB_STORJ_WPOPS_BUCKET not set}"
-      uplink access import migration "${IWB_STORJ_GRANT}" --force >/dev/null 2>&1 || true
-      uplink access use migration >/dev/null 2>&1 || true
+      ensure_storj_uplink_config
+      log "Preparing Storj uplink configuration for migration access..."
+      if ! run_with_timeout uplink access import migration "${IWB_STORJ_GRANT}" --force >/dev/null 2>&1; then
+        log "$ERR_PREFIX Failed to import Storj migration access"
+        (return 1 2>/dev/null) || exit 1
+      fi
+      if ! run_with_timeout uplink access use migration >/dev/null 2>&1; then
+        log "$ERR_PREFIX Failed to activate Storj migration access"
+        (return 1 2>/dev/null) || exit 1
+      fi
+      if ! run_with_timeout uplink ls "sj://${IWB_STORJ_WPOPS_BUCKET}/" >/dev/null 2>&1; then
+        log "$ERR_PREFIX Failed to verify Storj access for bucket: ${IWB_STORJ_WPOPS_BUCKET}"
+        (return 1 2>/dev/null) || exit 1
+      fi
       ;;
     r2)
       : "${IWB_R2_ACCOUNT_ID:?IWB_R2_ACCOUNT_ID not set}"

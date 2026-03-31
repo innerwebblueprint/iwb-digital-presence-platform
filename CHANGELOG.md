@@ -14,10 +14,12 @@ Version format:
 - `-dev.N`: Pre-release development build number
 
 ## [Unreleased]
+> **Commit Summary:** fix(storage): prevent storj delete dry-run from hanging during validation
 
 ### Added
 ### Changed
 ### Fixed
+- Storage migration delete mode now prepares Storj uplink config and performs bounded validation checks so `iwb-migrate-storage.sh --delete --from storj --dry-run` does not hang during provider validation.
 ### Removed
 ### Security
 
