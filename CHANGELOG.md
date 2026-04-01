@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.52] - 2026-03-31
+
 > **Commit Summary:** fix(security): block stray redis dump files from web access
 
 ### Added
@@ -26,6 +36,9 @@ Version format:
 - Future Redis snapshots are now anchored away from web content paths even if startup context changes.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
