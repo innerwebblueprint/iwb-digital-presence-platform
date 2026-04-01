@@ -281,11 +281,12 @@ get_wallet_balance() {
         local akt_usd_balance_raw
         local act_usd_balance_raw
         akt_usd_balance_raw=$(echo "scale=12; ${akt_balance} * ${akt_price_usd}" | bc 2>/dev/null || echo "0")
-        act_usd_balance_raw=$(echo "scale=12; ${act_balance} * ${akt_price_usd}" | bc 2>/dev/null || echo "0")
+        # ACT is a USD-pegged compute credit, so value it at approximately $1 per ACT.
+        act_usd_balance_raw="$act_balance_raw"
         akt_usd_balance=$(format_decimal_2 "$akt_usd_balance_raw")
         act_usd_balance=$(format_decimal_2 "$act_usd_balance_raw")
 
-        echo "AKT: ${akt_balance} (uakt: ${uakt_balance}, \$${akt_usd_balance} USD) | ACT: ${act_balance} (uact: ${uact_balance}, ~\$${act_usd_balance} USD @ AKT spot)"
+        echo "AKT: ${akt_balance} (uakt: ${uakt_balance}, \$${akt_usd_balance} USD) | ACT: ${act_balance} (uact: ${uact_balance}, ~\$${act_usd_balance} USD)"
     fi
 }
 
