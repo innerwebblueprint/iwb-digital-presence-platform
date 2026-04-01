@@ -3,7 +3,7 @@
 #EXPORT IWB_STORJSETUP=false
 CALL_MODULE=$MODULE
 MODULE="$CALL_MODULE STORJ"
-IWB_STORJSETUP=false
+export IWB_STORJSETUP="${IWB_STORJSETUP:-false}"
 
 setup_uplink_config() {
   local user_home="$1"
@@ -52,7 +52,7 @@ setup_storj_access() {
     return 1
   fi
 
-  IWB_STORJSETUP=true
+  export IWB_STORJSETUP=true
 
   if [ -z "${IWB_STORJ_WPOPS_BUCKET:-}" ]; then
     log "Storj access imported for root and n8n users. Bucket verification skipped because IWB_STORJ_WPOPS_BUCKET is not set."

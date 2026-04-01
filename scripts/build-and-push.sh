@@ -90,6 +90,21 @@ resolve_latest_n8n_version() {
     printf '%s\n' "$latest"
 }
 
+resolve_n8n_node_major() {
+    local n8n_version="$1"
+    local node_engine
+    local node_major
+
+    node_engine=$(npm view "n8n@${n8n_version}" engines.node 2>/dev/null) || return 1
+    node_major=$(printf '%s' "$node_engine" | sed -n 's/.*>=\([0-9][0-9]*\).*/\1/p')
+
+    if [ -z "$node_major" ]; then
+        return 1
+    fi
+
+    printf '%s\n' "$node_major"
+}
+
 # Check if VERSION file exists
 if [ ! -f "$VERSION_FILE" ]; then
     error "VERSION file not found at $VERSION_FILE"
@@ -172,6 +187,8 @@ cd "$PROJECT_ROOT"
 # Resolve latest stable n8n once so the Docker layer only invalidates when the version changes.
 N8N_VERSION=$(resolve_latest_n8n_version) || error "Failed to resolve latest stable n8n version from npm registry"
 info "Resolved n8n latest stable version: $N8N_VERSION"
+NODE_MAJOR=$(resolve_n8n_node_major "$N8N_VERSION") || error "Failed to resolve required Node.js major version for n8n@$N8N_VERSION"
+info "Resolved Node.js major version for n8n@$N8N_VERSION: $NODE_MAJOR"
 
 # Always bust cache for iwb-akash-deploy fetch layer
 AKASH_DEPLOY_CACHE_BUST=$(date +%s)
@@ -179,10 +196,11 @@ info "IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST"
 
 # Build the image
 log "Building Docker image..."
-info "Command: docker build $NO_CACHE --build-arg N8N_VERSION=$N8N_VERSION --build-arg IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST ${TAGS[*]} ."
+info "Command: docker build $NO_CACHE --build-arg NODE_MAJOR=$NODE_MAJOR --build-arg N8N_VERSION=$N8N_VERSION --build-arg IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST ${TAGS[*]} ."
 echo ""
 
 docker build $NO_CACHE \
+    --build-arg "NODE_MAJOR=$NODE_MAJOR" \
     --build-arg "N8N_VERSION=$N8N_VERSION" \
     --build-arg "IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST" \
     "${TAGS[@]}" . || error "Docker build failed"

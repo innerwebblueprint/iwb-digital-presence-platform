@@ -3,7 +3,7 @@
 
 CALL_MODULE=$MODULE
 MODULE="$CALL_MODULE R2"
-IWB_R2SETUP=false
+export IWB_R2SETUP="${IWB_R2SETUP:-false}"
 
 if [ "${IWB_PERSISTENT_STORAGE}" = "r2" ]; then
   log "Initializing Cloudflare R2 backup system..."
@@ -15,7 +15,7 @@ if [ "${IWB_PERSISTENT_STORAGE}" = "r2" ]; then
      AWS_SECRET_ACCESS_KEY="${IWB_R2_SECRET_ACCESS_KEY}" \
      AWS_DEFAULT_REGION="${IWB_R2_REGION}" \
      aws --endpoint-url "${IWB_R2_ENDPOINT}" s3 ls "s3://${IWB_R2_BUCKET}" >/dev/null 2>&1; then
-    IWB_R2SETUP=true
+    export IWB_R2SETUP=true
     log "Cloudflare R2 access verified successfully for bucket: ${IWB_R2_BUCKET}"
   else
     log "$ERR_PREFIX Failed to verify Cloudflare R2 access. Check IWB_R2_* values."

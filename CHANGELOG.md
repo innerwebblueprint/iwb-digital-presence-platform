@@ -15,9 +15,15 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(startup): pin compatible node runtime and reuse storage init
+
 ### Added
 ### Changed
+- Docker builds now resolve the Node.js major version required by the current stable n8n release and copy a matching official Node runtime into the final image.
+- Storage provider setup now reuses exported initialization flags so repeated startup, restore, and wallet flows do not re-import and re-verify Storj/R2 credentials over and over in the same container boot.
 ### Fixed
+- Latest stable n8n images no longer start with an unsupported Alpine Node patch release when n8n requires a newer Node version.
+- Startup logs are quieter and storage initialization work is no longer repeated unnecessarily during the same container boot.
 ### Removed
 ### Security
 

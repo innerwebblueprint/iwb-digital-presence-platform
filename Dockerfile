@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1
 
+ARG NODE_MAJOR=22
+
 # Stage 1: Build Akash provider-services binary
 FROM golang:1.25-alpine AS akash-builder
 ARG AKASH_VERSION=latest
@@ -62,7 +64,10 @@ RUN DOVECOT_VERSION=$(dovecot --version | cut -d' ' -f1) && \
     echo "Installed files:" && \
     find /build/pigeonhole-install -type f | sort
 
-# Stage 3: Main application image
+# Stage 3: Node.js runtime for n8n
+FROM node:${NODE_MAJOR}-alpine AS node-runtime
+
+# Stage 4: Main application image
 FROM alpine:3.21
 
 LABEL maintainer="InnerWebBlueprint <hello@innerwebblueprint.com>"
@@ -121,8 +126,8 @@ RUN apk add --no-cache \
     php83-exif php83-zip php83-iconv php83-pecl-imagick imagemagick ffmpeg
 
 # Node.js and npm runtime for n8n
-RUN apk add --no-cache nodejs npm && \
-    echo "Installed Node.js version: $(node --version)" && \
+COPY --from=node-runtime /usr/local/ /usr/local/
+RUN echo "Installed Node.js version: $(node --version)" && \
     echo "Installed npm version: $(npm --version)"
 
 RUN ln -sf /usr/bin/php83 /usr/bin/php
@@ -181,7 +186,13 @@ RUN test -n "$N8N_VERSION" && \
     echo "Fetching Node.js requirements for n8n@$N8N_VERSION..." && \
     N8N_NODE_REQUIREMENT=$(NPM_CONFIG_CACHE=/tmp/.npm npm view "n8n@${N8N_VERSION}" engines.node) && \
     echo "n8n@$N8N_VERSION requires Node.js: $N8N_NODE_REQUIREMENT" && \
-    echo "Using Node.js version: $(node --version)" && \
+    INSTALLED_NODE_VERSION=$(node --version | sed 's/^v//') && \
+    MIN_NODE_VERSION=$(printf '%s' "$N8N_NODE_REQUIREMENT" | sed -n 's/.*>=\([0-9][0-9.]*\).*/\1/p') && \
+    echo "Using Node.js version: v${INSTALLED_NODE_VERSION}" && \
+    if [ -n "$MIN_NODE_VERSION" ] && [ "$(printf '%s\n%s\n' "$MIN_NODE_VERSION" "$INSTALLED_NODE_VERSION" | sort -V | head -n1)" != "$MIN_NODE_VERSION" ]; then \
+      echo "ERROR: Node.js v${INSTALLED_NODE_VERSION} does not satisfy n8n requirement ${N8N_NODE_REQUIREMENT}"; \
+      exit 1; \
+    fi && \
     echo "Installing n8n version: $N8N_VERSION" && \
     NPM_CONFIG_CACHE=/tmp/.npm npm install -g --no-audit --no-fund "n8n@${N8N_VERSION}" && \
     rm -rf /tmp/.npm && \
