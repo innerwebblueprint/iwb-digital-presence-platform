@@ -15,9 +15,14 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(build): cache stable n8n updates in docker builds
+
 ### Added
 ### Changed
+- Docker builds now resolve npm's current stable `n8n` version once in `scripts/build-and-push.sh` and pass it into the Docker build as `N8N_VERSION`.
+- The Dockerfile now installs `n8n@${N8N_VERSION}` instead of a floating global `n8n` package so the n8n layer remains cached until the stable version changes.
 ### Fixed
+- Rebuilds now stay on the current stable n8n release while avoiding unnecessary n8n reinstalls and image churn on small project changes.
 ### Removed
 ### Security
 

@@ -138,7 +138,11 @@ RUN echo "Fetching n8n's Node.js requirements..." && \
 RUN ln -sf /usr/bin/php83 /usr/bin/php
 
 # Install n8n and create dedicated user
-RUN npm install -g n8n
+ARG N8N_VERSION
+RUN test -n "$N8N_VERSION" && \
+    echo "Installing n8n version: $N8N_VERSION" && \
+    npm install -g "n8n@${N8N_VERSION}" && \
+    echo "Installed n8n version: $(n8n --version)"
 
 # Install PostfixAdmin 
 WORKDIR /var/www/html/postfixadmin

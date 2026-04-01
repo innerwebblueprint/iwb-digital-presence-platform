@@ -76,6 +76,20 @@ info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
 
+resolve_latest_n8n_version() {
+    local dist_tags
+    local latest
+
+    dist_tags=$(curl -fsSL "https://registry.npmjs.org/-/package/n8n/dist-tags") || return 1
+    latest=$(printf '%s' "$dist_tags" | sed -n 's/.*"latest"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+
+    if [ -z "$latest" ]; then
+        return 1
+    fi
+
+    printf '%s\n' "$latest"
+}
+
 # Check if VERSION file exists
 if [ ! -f "$VERSION_FILE" ]; then
     error "VERSION file not found at $VERSION_FILE"
@@ -155,16 +169,23 @@ fi
 # Change to project root
 cd "$PROJECT_ROOT"
 
+# Resolve latest stable n8n once so the Docker layer only invalidates when the version changes.
+N8N_VERSION=$(resolve_latest_n8n_version) || error "Failed to resolve latest stable n8n version from npm registry"
+info "Resolved n8n latest stable version: $N8N_VERSION"
+
 # Always bust cache for iwb-akash-deploy fetch layer
 AKASH_DEPLOY_CACHE_BUST=$(date +%s)
 info "IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST"
 
 # Build the image
 log "Building Docker image..."
-info "Command: docker build $NO_CACHE --build-arg IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST ${TAGS[*]} ."
+info "Command: docker build $NO_CACHE --build-arg N8N_VERSION=$N8N_VERSION --build-arg IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST ${TAGS[*]} ."
 echo ""
 
-docker build $NO_CACHE --build-arg "IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST" "${TAGS[@]}" . || error "Docker build failed"
+docker build $NO_CACHE \
+    --build-arg "N8N_VERSION=$N8N_VERSION" \
+    --build-arg "IWB_AKASH_DEPLOY_CACHE_BUST=$AKASH_DEPLOY_CACHE_BUST" \
+    "${TAGS[@]}" . || error "Docker build failed"
 
 log "Docker build successful!"
 echo ""
