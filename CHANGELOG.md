@@ -23,6 +23,19 @@ Version format:
 
 ---
 
+## [v1.0.0-dev.51] - 2026-03-31
+
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+
+---
+
 ## [v1.0.0-dev.50] - 2026-03-31
 
 > **Commit Summary:** fix(startup): pin compatible node runtime and reuse storage init
