@@ -123,22 +123,23 @@ RUN apk add --no-cache \
 
 # pip install beem
 
+# Resolve n8n version before Node.js setup so compatibility checks use the same published version we install.
+ARG N8N_VERSION
+
 # Node.js and npm - install from Alpine 3.21 packages and validate compatibility
-RUN echo "Fetching n8n's Node.js requirements..." && \
-    N8N_NODE_REQUIREMENT=$(curl -s https://raw.githubusercontent.com/n8n-io/n8n/master/package.json | grep -o '"node": *"[^"]*"' | cut -d'"' -f4) && \
-    echo "n8n requires Node.js: $N8N_NODE_REQUIREMENT" && \
-    echo "Installing Node.js from Alpine 3.21 packages..." && \
+RUN test -n "$N8N_VERSION" && \
+    echo "Fetching Node.js requirements for n8n@$N8N_VERSION..." && \
     apk add --no-cache nodejs npm && \
+    N8N_NODE_REQUIREMENT=$(npm view "n8n@${N8N_VERSION}" engines.node) && \
+    echo "n8n@$N8N_VERSION requires Node.js: $N8N_NODE_REQUIREMENT" && \
     INSTALLED_VERSION=$(node --version) && \
     echo "Installed Node.js version: $INSTALLED_VERSION" && \
-    echo "Note: Using Alpine 3.21's Node.js $INSTALLED_VERSION which is compatible with n8n" && \
     echo "✓ Node.js installation complete" && \
     node --version && npm --version
 
 RUN ln -sf /usr/bin/php83 /usr/bin/php
 
 # Install n8n and create dedicated user
-ARG N8N_VERSION
 RUN test -n "$N8N_VERSION" && \
     echo "Installing n8n version: $N8N_VERSION" && \
     npm install -g "n8n@${N8N_VERSION}" && \

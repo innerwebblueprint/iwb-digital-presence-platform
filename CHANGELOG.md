@@ -15,9 +15,13 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(build): align n8n node checks with resolved version
+
 ### Added
 ### Changed
+- Docker now checks Node.js compatibility against the exact resolved `n8n@${N8N_VERSION}` package metadata instead of reading requirements from the moving `master` branch.
 ### Fixed
+- Docker builds now use the same resolved n8n version for both Node.js requirement validation and package installation, avoiding branch-to-package mismatch risk.
 ### Removed
 ### Security
 
