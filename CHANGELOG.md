@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.54] - 2026-03-31
+
 > **Commit Summary:** fix(storage): ignore placeholder storj env values
 
 ### Added
@@ -25,6 +35,9 @@ Version format:
 - Storj mode still errors clearly when `storj` is selected but the access grant is missing or left at a placeholder value.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
