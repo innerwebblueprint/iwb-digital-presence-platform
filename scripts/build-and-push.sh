@@ -92,10 +92,17 @@ resolve_latest_n8n_version() {
 
 resolve_n8n_node_major() {
     local n8n_version="$1"
+    local package_json
     local node_engine
     local node_major
 
-    node_engine=$(npm view "n8n@${n8n_version}" engines.node 2>/dev/null) || return 1
+    package_json=$(curl -fsSL "https://registry.npmjs.org/n8n/${n8n_version}") || return 1
+    node_engine=$(printf '%s' "$package_json" | sed -n 's/.*"node"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+
+    if [ -z "$node_engine" ]; then
+        return 1
+    fi
+
     node_major=$(printf '%s' "$node_engine" | sed -n 's/.*>=\([0-9][0-9]*\).*/\1/p')
 
     if [ -z "$node_major" ]; then
