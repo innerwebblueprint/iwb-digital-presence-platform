@@ -15,10 +15,15 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** chore(build): remove unused python build tooling from runtime image
+
 ### Added
 ### Changed
+- The final Docker image now keeps only the Python runtime packages needed by embedded tooling and drops unused Python packaging/build dependencies.
 ### Fixed
+- Runtime images no longer carry the unused Python compiler and packaging toolchain, reducing image size without changing current application behavior.
 ### Removed
+- Removed unused runtime image packages: `gcc`, `musl-dev`, `libffi-dev`, `openssl-dev`, `py3-pip`, `py3-setuptools`, and `py3-wheel`.
 ### Security
 
 ---

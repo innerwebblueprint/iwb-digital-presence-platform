@@ -74,10 +74,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apk update && apk add --no-cache \
     bash rsyslog curl nano coreutils iputils zip unzip wget supervisor cronie dnsmasq tree sudo jq bc netcat-openbsd aws-cli eudev-libs
 
-# Python & build tools
+# Python runtime for embedded tooling
 RUN apk add --no-cache \
-    python3 py3-pip py3-cryptography py3-setuptools py3-wheel py3-yaml py3-requests \
-    gcc musl-dev libffi-dev openssl-dev
+    python3 py3-cryptography py3-yaml py3-requests
 
 # Mail stack: Postfix, Dovecot, Pigeonhole (Alpine package for proper linking)
 RUN apk add --no-cache \
