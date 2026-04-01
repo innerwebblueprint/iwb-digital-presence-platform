@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.46] - 2026-03-31
+
 > **Commit Summary:** fix(build): cache stable n8n updates in docker builds
 
 ### Added
@@ -25,6 +35,9 @@ Version format:
 - Rebuilds now stay on the current stable n8n release while avoiding unnecessary n8n reinstalls and image churn on small project changes.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
