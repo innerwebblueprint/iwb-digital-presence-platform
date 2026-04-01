@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.47] - 2026-03-31
+
 > **Commit Summary:** fix(build): align n8n node checks with resolved version
 
 ### Added
@@ -24,6 +34,9 @@ Version format:
 - Docker builds now use the same resolved n8n version for both Node.js requirement validation and package installation, avoiding branch-to-package mismatch risk.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
