@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.49] - 2026-03-31
+
 > **Commit Summary:** chore(build): remove unused python build tooling from runtime image
 
 ### Added
@@ -25,6 +35,9 @@ Version format:
 ### Removed
 - Removed unused runtime image packages: `gcc`, `musl-dev`, `libffi-dev`, `openssl-dev`, `py3-pip`, `py3-setuptools`, and `py3-wheel`.
 ### Security
+
+---
+
 
 ---
 
