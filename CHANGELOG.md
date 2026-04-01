@@ -15,9 +15,15 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(security): block stray redis dump files from web access
+
 ### Added
 ### Changed
+- WordPress Nginx vhost templates now explicitly deny direct access to `.rdb` files so accidental Redis snapshot artifacts in the web root cannot be downloaded.
+- Redis configuration now explicitly pins persistence to `/var/dump.rdb` instead of relying on the process working directory.
 ### Fixed
+- Existing exposed `dump.rdb` artifacts were traced to historical Redis persistence behavior and backup propagation rather than current plugin configuration; future builds now block web serving of those files by default.
+- Future Redis snapshots are now anchored away from web content paths even if startup context changes.
 ### Removed
 ### Security
 

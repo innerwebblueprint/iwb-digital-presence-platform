@@ -10,6 +10,11 @@ server {
         try_files $uri $uri/ =404;
     }
 
+    # Never serve Redis persistence files if they somehow appear in the web root.
+    location ~* \.rdb$ {
+        deny all;
+    }
+
     access_log /var/log/nginx/{{IWB_DOMAIN}}_access.log;
     error_log /var/log/nginx/{{IWB_DOMAIN}}_error.log;
 }

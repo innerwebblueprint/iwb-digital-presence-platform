@@ -42,6 +42,11 @@ server {
         deny all;
     }
 
+    # Never serve Redis persistence files if they somehow appear in the web root.
+    location ~* \.rdb$ {
+        deny all;
+    }
+
     # Optional: allow direct access to robots.txt and favicon.ico
     location = /robots.txt  { access_log off; log_not_found off; }
     location = /favicon.ico { access_log off; log_not_found off; }
@@ -72,4 +77,3 @@ server { # Media reverse proxy
         proxy_http_version 1.1;
     }
 }
-

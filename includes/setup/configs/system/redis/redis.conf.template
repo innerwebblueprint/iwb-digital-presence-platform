@@ -5,3 +5,6 @@
 
 bind 127.0.0.1
 
+# Keep Redis persistence out of web roots regardless of process working directory.
+dir /var
+dbfilename dump.rdb
