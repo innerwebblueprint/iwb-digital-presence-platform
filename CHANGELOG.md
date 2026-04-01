@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.50] - 2026-03-31
+
 > **Commit Summary:** fix(startup): pin compatible node runtime and reuse storage init
 
 ### Added
@@ -26,6 +36,9 @@ Version format:
 - Startup logs are quieter and storage initialization work is no longer repeated unnecessarily during the same container boot.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
