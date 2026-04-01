@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.48] - 2026-03-31
+
 > **Commit Summary:** refactor(build): reduce docker rebuild churn and trim image layers
 
 ### Added
@@ -26,6 +36,9 @@ Version format:
 - Docker pushes should now avoid re-uploading as much data when only n8n changes because fewer downstream layers are invalidated.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
