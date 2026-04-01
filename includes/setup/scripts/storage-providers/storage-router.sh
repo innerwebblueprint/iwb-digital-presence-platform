@@ -4,6 +4,15 @@
 
 MODULE="STORAGE-ROUTER"
 
+if [ -n "${IWB_STORJ_GRANT:-}" ] && [ "${IWB_PERSISTENT_STORAGE}" != "storj" ]; then
+  log "Storj credentials detected in environment."
+  log "Setting up optional Storj access for root and n8n users..."
+  if ! source /var/setup/scripts/storage-providers/storj/storj-setup.sh; then
+    log "$ERR_PREFIX Optional Storj access setup failed."
+    (return 1 2>/dev/null) || exit 1
+  fi
+fi
+
 # Setup and verify storage provider Credentials
 case "$IWB_PERSISTENT_STORAGE" in
   storj)

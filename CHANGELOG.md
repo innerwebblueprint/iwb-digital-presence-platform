@@ -15,9 +15,14 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(storage): bootstrap optional storj access alongside r2
+
 ### Added
 ### Changed
+- Storage startup now bootstraps Storj `uplink` access for both root and `n8n` whenever `IWB_STORJ_GRANT` is present, even if `IWB_PERSISTENT_STORAGE` is set to `r2`.
+- Storj setup was refactored into reusable access-bootstrap helpers so optional secondary-provider access can be initialized without changing the active storage backend.
 ### Fixed
+- Containers using Cloudflare R2 as the primary storage provider now still prepare in-container Storj credentials when Storj env vars are supplied, restoring legacy Storj access for workflows and manual operations.
 ### Removed
 ### Security
 

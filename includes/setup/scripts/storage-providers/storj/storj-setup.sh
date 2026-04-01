@@ -5,34 +5,37 @@ CALL_MODULE=$MODULE
 MODULE="$CALL_MODULE STORJ"
 IWB_STORJSETUP=false
 
-# Setup Storj Access
-if [ "$IWB_PERSISTENT_STORAGE" == "storj" ]; then
-  log "Initializing Storj backup system..."
-  
-  # Setup uplink config for root user
-  mkdir -p /root/.config/storj/uplink
-  cat > /root/.config/storj/uplink/config.ini <<EOF
+setup_uplink_config() {
+  local user_home="$1"
+  local owner="$2"
+
+  mkdir -p "${user_home}/.config/storj/uplink"
+  cat > "${user_home}/.config/storj/uplink/config.ini" <<EOF
 [analytics]
 enabled = false
 
 [metrics]
 addr =
 EOF
-  
-  # Setup uplink config for n8n user
-  mkdir -p /home/n8n/.config/storj/uplink
-  cat > /home/n8n/.config/storj/uplink/config.ini <<EOF
-[analytics]
-enabled = false
 
-[metrics]
-addr =
-EOF
-  chown -R n8n:n8n /home/n8n/.config
-  
+  if [ -n "$owner" ]; then
+    chown -R "$owner" "${user_home}/.config"
+  fi
+}
+
+setup_storj_access() {
+  if [ -z "${IWB_STORJ_GRANT:-}" ]; then
+    log "No Storj access grant provided. Skipping Storj access setup."
+    return 0
+  fi
+
+  log "Initializing Storj access..."
+
+  setup_uplink_config "/root" ""
+  setup_uplink_config "/home/n8n" "n8n:n8n"
+
   log "config.ini written to suppress analytics prompt for both root and n8n users"
-  
-  # Import access for root user
+
   if uplink access import default "$IWB_STORJ_GRANT" --force >/dev/null 2>&1; then
     uplink access use default >/dev/null 2>&1
     log "Storj access imported and set to default for root user"
@@ -40,8 +43,7 @@ EOF
     log "$ERR_PREFIX Failed to import Storj access grant for root user"
     return 1
   fi
-  
-  # Import access for n8n user  
+
   if sudo -u n8n uplink access import default "$IWB_STORJ_GRANT" --force >/dev/null 2>&1; then
     sudo -u n8n uplink access use default >/dev/null 2>&1
     log "Storj access imported and set to default for n8n user"
@@ -49,23 +51,33 @@ EOF
     log "$ERR_PREFIX Failed to import Storj access grant for n8n user"
     return 1
   fi
-  log "Verifying Storj access for bucket: $IWB_STORJ_WPOPS_BUCKET"
-  if ! uplink ls "sj://${IWB_STORJ_WPOPS_BUCKET}/" >/dev/null 2>&1; then
-    log "$ERR_PREFIX Failed to verify Storj access for root user. Check IWB_STORJ_GRANT and IWB_STORJ_WPOPS_BUCKET values."
-    return 1
+
+  IWB_STORJSETUP=true
+
+  if [ -z "${IWB_STORJ_WPOPS_BUCKET:-}" ]; then
+    log "Storj access imported for root and n8n users. Bucket verification skipped because IWB_STORJ_WPOPS_BUCKET is not set."
   else
-    log "Storj access verified successfully for root user for bucket: $IWB_STORJ_WPOPS_BUCKET"
-  fi
-  
-  # Verify access for n8n user
-  if ! sudo -u n8n uplink ls "sj://${IWB_STORJ_WPOPS_BUCKET}/" >/dev/null 2>&1; then
-    log "$ERR_PREFIX Failed to verify Storj access for n8n user. Check IWB_STORJ_GRANT and IWB_STORJ_WPOPS_BUCKET values."
-    return 1
-  else
-    IWB_STORJSETUP=true
-    #EXPORT IWB_STORJSETUP=true
+    log "Verifying Storj access for bucket: $IWB_STORJ_WPOPS_BUCKET"
+    if ! uplink ls "sj://${IWB_STORJ_WPOPS_BUCKET}/" >/dev/null 2>&1; then
+      log "$ERR_PREFIX Failed to verify Storj access for root user. Check IWB_STORJ_GRANT and IWB_STORJ_WPOPS_BUCKET values."
+      return 1
+    fi
+
+    if ! sudo -u n8n uplink ls "sj://${IWB_STORJ_WPOPS_BUCKET}/" >/dev/null 2>&1; then
+      log "$ERR_PREFIX Failed to verify Storj access for n8n user. Check IWB_STORJ_GRANT and IWB_STORJ_WPOPS_BUCKET values."
+      return 1
+    fi
+
     log "Storj access verified successfully for both root and n8n users for bucket: $IWB_STORJ_WPOPS_BUCKET"
+  fi
+}
+
+# Setup Storj Access
+if [ "$IWB_PERSISTENT_STORAGE" == "storj" ] || [ -n "${IWB_STORJ_GRANT:-}" ]; then
+  if ! setup_storj_access; then
+    return 1
   fi
 fi
 
 MODULE=$CALL_MODULE
+(return 0 2>/dev/null) || exit 0
