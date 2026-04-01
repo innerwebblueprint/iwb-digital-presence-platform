@@ -15,9 +15,15 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** refactor(build): reduce docker rebuild churn and trim image layers
+
 ### Added
 ### Changed
+- Docker now installs Node.js/npm earlier as stable runtime dependencies and defers the versioned n8n install until late in the image so n8n bumps invalidate a much smaller tail of layers.
+- The Akash `provider-services` binary is now copied with executable permissions in a single step, avoiding an extra large chmod layer.
 ### Fixed
+- The n8n install step now uses a temporary npm cache and removes it in the same layer, reducing image bloat from persisted npm package cache files.
+- Docker pushes should now avoid re-uploading as much data when only n8n changes because fewer downstream layers are invalidated.
 ### Removed
 ### Security
 

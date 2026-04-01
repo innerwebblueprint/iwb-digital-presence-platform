@@ -121,29 +121,12 @@ RUN apk add --no-cache php83-gmp php83-bcmath
 RUN apk add --no-cache \
     php83-exif php83-zip php83-iconv php83-pecl-imagick imagemagick ffmpeg
 
-# pip install beem
-
-# Resolve n8n version before Node.js setup so compatibility checks use the same published version we install.
-ARG N8N_VERSION
-
-# Node.js and npm - install from Alpine 3.21 packages and validate compatibility
-RUN test -n "$N8N_VERSION" && \
-    echo "Fetching Node.js requirements for n8n@$N8N_VERSION..." && \
-    apk add --no-cache nodejs npm && \
-    N8N_NODE_REQUIREMENT=$(npm view "n8n@${N8N_VERSION}" engines.node) && \
-    echo "n8n@$N8N_VERSION requires Node.js: $N8N_NODE_REQUIREMENT" && \
-    INSTALLED_VERSION=$(node --version) && \
-    echo "Installed Node.js version: $INSTALLED_VERSION" && \
-    echo "✓ Node.js installation complete" && \
-    node --version && npm --version
+# Node.js and npm runtime for n8n
+RUN apk add --no-cache nodejs npm && \
+    echo "Installed Node.js version: $(node --version)" && \
+    echo "Installed npm version: $(npm --version)"
 
 RUN ln -sf /usr/bin/php83 /usr/bin/php
-
-# Install n8n and create dedicated user
-RUN test -n "$N8N_VERSION" && \
-    echo "Installing n8n version: $N8N_VERSION" && \
-    npm install -g "n8n@${N8N_VERSION}" && \
-    echo "Installed n8n version: $(n8n --version)"
 
 # Install PostfixAdmin 
 WORKDIR /var/www/html/postfixadmin
@@ -160,8 +143,7 @@ RUN wget -O /tmp/uplink.zip https://github.com/storj/storj/releases/latest/downl
     rm -rf /tmp/uplink.zip /tmp/uplink
 
 # Copy Akash provider-services binary from builder stage
-COPY --from=akash-builder /build/provider-services /usr/local/bin/provider-services
-RUN chmod +x /usr/local/bin/provider-services
+COPY --from=akash-builder --chmod=755 /build/provider-services /usr/local/bin/provider-services
 
 # Install wp-cli and allow root usage
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
@@ -191,6 +173,20 @@ RUN mkdir -p /var/www/html/n8n /home/n8n && \
     chown -R n8n:n8n /var/www/html/n8n /home/n8n && \
     ln -sf /var/www/html/n8n /home/n8n/.n8n && \
     chmod 700 /var/www/html/n8n
+
+# Resolve n8n version late so version bumps only rebuild the small tail of the image.
+ARG N8N_VERSION
+
+# Validate Node.js compatibility and install the resolved stable n8n version.
+RUN test -n "$N8N_VERSION" && \
+    echo "Fetching Node.js requirements for n8n@$N8N_VERSION..." && \
+    N8N_NODE_REQUIREMENT=$(NPM_CONFIG_CACHE=/tmp/.npm npm view "n8n@${N8N_VERSION}" engines.node) && \
+    echo "n8n@$N8N_VERSION requires Node.js: $N8N_NODE_REQUIREMENT" && \
+    echo "Using Node.js version: $(node --version)" && \
+    echo "Installing n8n version: $N8N_VERSION" && \
+    NPM_CONFIG_CACHE=/tmp/.npm npm install -g --no-audit --no-fund "n8n@${N8N_VERSION}" && \
+    rm -rf /tmp/.npm && \
+    echo "Installed n8n version: $(n8n --version)"
 
 # Configure sudo for n8n user to run only provider-services as root
 # not sure this is actually needed? 
