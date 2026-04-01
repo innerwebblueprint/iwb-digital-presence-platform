@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.45] - 2026-03-31
+
 > **Commit Summary:** fix(storage): bootstrap optional storj access alongside r2
 
 ### Added
@@ -25,6 +35,9 @@ Version format:
 - Containers using Cloudflare R2 as the primary storage provider now still prepare in-container Storj credentials when Storj env vars are supplied, restoring legacy Storj access for workflows and manual operations.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
