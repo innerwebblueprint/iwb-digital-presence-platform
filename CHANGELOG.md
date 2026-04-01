@@ -15,9 +15,14 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(storage): ignore placeholder storj env values
+
 ### Added
 ### Changed
+- The example env template now puts Storj guidance and the initial n8n password warning on standalone comment lines so copied `.env` files do not treat those notes as literal values.
 ### Fixed
+- R2 deployments now ignore placeholder/comment-only `IWB_STORJ_GRANT` values instead of attempting optional Storj initialization and failing startup.
+- Storj mode still errors clearly when `storj` is selected but the access grant is missing or left at a placeholder value.
 ### Removed
 ### Security
 

@@ -8,18 +8,28 @@ export IWB_STORJSETUP="${IWB_STORJSETUP:-false}"
 export IWB_R2SETUP="${IWB_R2SETUP:-false}"
 export IWB_STORAGE_ROUTER_INITIALIZED="${IWB_STORAGE_ROUTER_INITIALIZED:-false}"
 
+has_real_storj_grant() {
+  local raw_grant="${IWB_STORJ_GRANT:-}"
+  local trimmed_grant
+  trimmed_grant=$(printf '%s' "$raw_grant" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+  [ -n "$trimmed_grant" ] && [ "${trimmed_grant#\#}" = "$trimmed_grant" ]
+}
+
 if [ "$IWB_STORAGE_ROUTER_INITIALIZED" = "true" ]; then
   log "Storage providers already initialized for this startup. Reusing existing setup."
   (return 0 2>/dev/null) || exit 0
 fi
 
-if [ -n "${IWB_STORJ_GRANT:-}" ] && [ "${IWB_PERSISTENT_STORAGE}" != "storj" ] && [ "$IWB_STORJSETUP" != "true" ]; then
+if has_real_storj_grant && [ "${IWB_PERSISTENT_STORAGE}" != "storj" ] && [ "$IWB_STORJSETUP" != "true" ]; then
   log "Storj credentials detected in environment."
   log "Setting up optional Storj access for root and n8n users..."
   if ! source /var/setup/scripts/storage-providers/storj/storj-setup.sh; then
     log "$ERR_PREFIX Optional Storj access setup failed."
     (return 1 2>/dev/null) || exit 1
   fi
+elif [ -n "${IWB_STORJ_GRANT:-}" ] && [ "${IWB_PERSISTENT_STORAGE}" != "storj" ] && [ "$IWB_STORJSETUP" != "true" ]; then
+  log "Storj grant is present but appears to be an empty/comment placeholder. Skipping optional Storj setup."
 fi
 
 # Setup and verify storage provider Credentials

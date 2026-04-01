@@ -5,6 +5,14 @@ CALL_MODULE=$MODULE
 MODULE="$CALL_MODULE STORJ"
 export IWB_STORJSETUP="${IWB_STORJSETUP:-false}"
 
+has_real_storj_grant() {
+  local raw_grant="${IWB_STORJ_GRANT:-}"
+  local trimmed_grant
+  trimmed_grant=$(printf '%s' "$raw_grant" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+  [ -n "$trimmed_grant" ] && [ "${trimmed_grant#\#}" = "$trimmed_grant" ]
+}
+
 setup_uplink_config() {
   local user_home="$1"
   local owner="$2"
@@ -24,8 +32,13 @@ EOF
 }
 
 setup_storj_access() {
-  if [ -z "${IWB_STORJ_GRANT:-}" ]; then
-    log "No Storj access grant provided. Skipping Storj access setup."
+  if ! has_real_storj_grant; then
+    if [ "$IWB_PERSISTENT_STORAGE" = "storj" ]; then
+      log "$ERR_PREFIX Storj storage is selected, but IWB_STORJ_GRANT is missing or still set to a placeholder value."
+      return 1
+    fi
+
+    log "No valid Storj access grant provided. Skipping Storj access setup."
     return 0
   fi
 
@@ -73,7 +86,7 @@ setup_storj_access() {
 }
 
 # Setup Storj Access
-if [ "$IWB_PERSISTENT_STORAGE" == "storj" ] || [ -n "${IWB_STORJ_GRANT:-}" ]; then
+if [ "$IWB_PERSISTENT_STORAGE" == "storj" ] || has_real_storj_grant; then
   if ! setup_storj_access; then
     return 1
   fi
