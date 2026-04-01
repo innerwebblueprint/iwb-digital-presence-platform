@@ -18,9 +18,22 @@ Version format:
 ### Added
 ### Changed
 ### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.53] - 2026-03-31
+
+### Added
+### Changed
+### Fixed
 - Akash wallet status emails now value `ACT` as a USD-pegged compute credit instead of incorrectly pricing it at the current `AKT` spot rate.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
