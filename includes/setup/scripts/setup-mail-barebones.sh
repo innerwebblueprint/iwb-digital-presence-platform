@@ -9,9 +9,11 @@ sed "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" $IWB_CONFIGDIR/mail/postfix/postfix-main-ba
 echo -e "$IWB_PREFIX Linking config files"
 mkdir -p /etc/rsyslog.d
 mkdir -p /etc/supervisor/conf.d
+mkdir -p /etc/dovecot/sieve-before
 ln -sf $IWB_CONFIGDIR/mail/postfix/postfix-main-barebones.cf /etc/postfix/main.cf
 ln -sf $IWB_CONFIGDIR/mail/postfix/postfix-master-barebones.cf /etc/postfix/master.cf
 ln -sf $IWB_CONFIGDIR/mail/dovecot/dovecot-99-barebones.conf /etc/dovecot/conf.d/99-local.conf
+ln -sf $IWB_CONFIGDIR/mail/dovecot/default-spam-filter.sieve /etc/dovecot/sieve-before/00-spam-to-junk.sieve
 ln -sf $IWB_CONFIGDIR/system/rsyslogd/rsyslogd-10-postfix.conf /etc/rsyslog.d/10-postfix.conf
 ln -sf $IWB_CONFIGDIR/system/supervisord/supervisord-barebones.conf /etc/supervisor/conf.d/supervisord.conf
 

@@ -237,6 +237,9 @@ COPY includes/ .
 # Configure scripts and permissions
 RUN chmod -R +x /var/setup/scripts
 
+# Make aws CLI automatically use configured R2 credentials and endpoint in container shells.
+RUN install -m 755 /var/setup/scripts/storage-providers/r2/aws-wrapper.sh /usr/local/bin/aws
+
 # Expose ports
 EXPOSE 25 587 993 143 110 4190 5678
 

@@ -4,3 +4,4 @@
 # Please do not edit here, this template is built into the docker container
 
 servers = "127.0.0.1";
+db = 1;

@@ -151,7 +151,33 @@ case "$DATASET" in
 
   rspamd)
     MODULE="BACKUP RSPAMD"
-    BACKUP_SOURCE_DIR="/var/lib/rspamd"
+    BACKUP_SOURCE_DIR="${TMP_BACKUP_DIR}/rspamd-root"
+    mkdir -p "${BACKUP_SOURCE_DIR}/var/lib/rspamd"
+
+    log "Staging Rspamd runtime data..."
+    cp -a /var/lib/rspamd/. "${BACKUP_SOURCE_DIR}/var/lib/rspamd/"
+
+    if [ -f /var/dump.rdb ]; then
+      if command -v redis-cli >/dev/null 2>&1 && redis-cli ping >/dev/null 2>&1; then
+        log "Requesting fresh Redis snapshot before backup..."
+        if redis-cli BGSAVE >/dev/null 2>&1; then
+          for _ in $(seq 1 30); do
+            if [ "$(redis-cli INFO persistence 2>/dev/null | awk -F: '/^rdb_bgsave_in_progress/ {gsub(/\r/, \"\", $2); print $2}')" = "0" ]; then
+              break
+            fi
+            sleep 1
+          done
+        else
+          log "Redis BGSAVE did not start; copying current persistence file as-is."
+        fi
+      fi
+
+      log "Including Redis persistence file for Bayes data..."
+      mkdir -p "${BACKUP_SOURCE_DIR}/var"
+      cp -a /var/dump.rdb "${BACKUP_SOURCE_DIR}/var/dump.rdb"
+    else
+      log "Redis persistence file /var/dump.rdb not found; continuing without it."
+    fi
     ;;
 
   wpdb)

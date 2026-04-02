@@ -15,8 +15,17 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** feat(mail): strengthen server-side spam filtering, Bayes learning, and Redis-backed persistence safety
+
 ### Added
+- Rspamd now renders a dedicated `milter_headers` local config so inbound mail can carry consistent server-side scan metadata instead of only sometimes receiving spam headers.
+- Dovecot now ships a default global Sieve rule that files spam-tagged mail into `Junk` before per-user filters run, enabling server-side spam filing by default in both full and bare-bones mail modes.
+- Full-mode mail builds now include Dovecot IMAPSieve training hooks that teach Rspamd Bayes when users move mail into `Junk` or back out of `Junk`.
 ### Changed
+- Mail filtering defaults now stamp scanned mail with `X-Spam-Status` plus a custom `X-IWB-Spam-Checked: yes` header so downstream rules can reliably detect that the server scanned the message.
+- Full-mode Dovecot startup now renders local `rspamc` training wrappers and compiles the administrator Sieve scripts used for spam and ham learning when `sievec` is available.
+- Rspamd now uses Redis database `1` by default so Bayes and related mail-filter state no longer share WordPress's default Redis database `0`.
+- The `rspamd` backup dataset now stages both `/var/lib/rspamd` and `/var/dump.rdb`, and restore now extracts that Redis persistence back to `/`, preserving Bayes learning across restores.
 ### Fixed
 ### Removed
 ### Security
@@ -30,6 +39,7 @@ Version format:
 ### Added
 ### Changed
 - The example env template now puts Storj guidance and the initial n8n password warning on standalone comment lines so copied `.env` files do not treat those notes as literal values.
+- R2-backed containers now install an `aws` wrapper that automatically uses the configured `IWB_R2_*` credentials and Cloudflare endpoint for interactive shell usage.
 ### Fixed
 - R2 deployments now ignore placeholder/comment-only `IWB_STORJ_GRANT` values instead of attempting optional Storj initialization and failing startup.
 - Storj mode still errors clearly when `storj` is selected but the access grant is missing or left at a placeholder value.

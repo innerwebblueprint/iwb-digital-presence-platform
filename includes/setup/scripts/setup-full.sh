@@ -132,11 +132,30 @@ sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
 log "Linking config files"
 mkdir -p /etc/rsyslog.d
 mkdir -p /etc/supervisor/conf.d
+mkdir -p /etc/dovecot/sieve-before
+mkdir -p /etc/dovecot/sieve
+mkdir -p /etc/dovecot/sieve-pipe
 ln -sf $IWB_CONFIGDIR/mail/postfix/postfix-main-full.cf /etc/postfix/main.cf
 ln -sf $IWB_CONFIGDIR/mail/postfix/postfix-master-full.cf /etc/postfix/master.cf
 ln -sf $IWB_CONFIGDIR/mail/dovecot/dovecot-99-full.conf /etc/dovecot/conf.d/99-local.conf
+ln -sf $IWB_CONFIGDIR/mail/dovecot/default-spam-filter.sieve /etc/dovecot/sieve-before/00-spam-to-junk.sieve
+ln -sf $IWB_CONFIGDIR/mail/dovecot/report-spam.sieve /etc/dovecot/sieve/report-spam.sieve
+ln -sf $IWB_CONFIGDIR/mail/dovecot/report-ham.sieve /etc/dovecot/sieve/report-ham.sieve
 ln -sf $IWB_CONFIGDIR/system/rsyslogd/rsyslogd-10-postfix.conf /etc/rsyslog.d/10-postfix.conf
 ln -sf $IWB_CONFIGDIR/system/supervisord/supervisord-full.conf /etc/supervisor/conf.d/supervisord.conf
+
+sed -e "s|{{IWB_RSPAMD_CONTROLLER_PASSWORD}}|$IWB_RSPAMD_CONTROLLER_PASSWORD|g" \
+    "$IWB_CONFIGDIR/mail/dovecot/learn-spam.sh.template" > /etc/dovecot/sieve-pipe/learn-spam.sh
+sed -e "s|{{IWB_RSPAMD_CONTROLLER_PASSWORD}}|$IWB_RSPAMD_CONTROLLER_PASSWORD|g" \
+    "$IWB_CONFIGDIR/mail/dovecot/learn-ham.sh.template" > /etc/dovecot/sieve-pipe/learn-ham.sh
+chmod 750 /etc/dovecot/sieve-pipe/learn-spam.sh /etc/dovecot/sieve-pipe/learn-ham.sh
+chown root:vmail /etc/dovecot/sieve-pipe/learn-spam.sh /etc/dovecot/sieve-pipe/learn-ham.sh
+
+if command -v sievec >/dev/null 2>&1; then
+  sievec /etc/dovecot/sieve/report-spam.sieve
+  sievec /etc/dovecot/sieve/report-ham.sieve
+  sievec /etc/dovecot/sieve-before/00-spam-to-junk.sieve
+fi
 
 # Restore Usser Mail if Archived
 log "Attempting to restore user mailboxes for $IWB_DOMAIN..."
@@ -194,4 +213,3 @@ source /var/setup/scripts/send-startup-email.sh &
 
 # Safe exit/return mechanism
 (return 0 2>/dev/null) || exit 0
-

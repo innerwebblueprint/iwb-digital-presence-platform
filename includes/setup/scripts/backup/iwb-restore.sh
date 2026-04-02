@@ -107,7 +107,19 @@ case "$DATASET" in
   rspamd)
     MODULE="RESTORE RSPAMD"
     log "Restoring Rspamd data..."
-    tar -xzf "$ARCHIVE_PATH" -C /var/lib/rspamd
+    mkdir -p /var/lib/rspamd
+
+    # Support both the new staged archive layout:
+    #   var/lib/rspamd/...
+    #   var/dump.rdb
+    # and the legacy layout that archived only the contents of /var/lib/rspamd.
+    if tar -tzf "$ARCHIVE_PATH" | grep -q '^var/'; then
+      log "Detected staged Rspamd archive layout; restoring to filesystem root."
+      tar -xzf "$ARCHIVE_PATH" -C /
+    else
+      log "Detected legacy Rspamd archive layout; restoring to /var/lib/rspamd."
+      tar -xzf "$ARCHIVE_PATH" -C /var/lib/rspamd
+    fi
     ;;
 
   wpdb)

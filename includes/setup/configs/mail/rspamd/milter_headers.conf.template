@@ -1,0 +1,20 @@
+# includes/setup/configs/mail/rspamd/milter_headers.conf.template
+
+# This is a rendered file for domain {{IWB_DOMAIN}}
+# Please do not edit here, this template is built into the docker container
+
+# Stamp scanned inbound mail with consistent headers so downstream filters and
+# mailbox rules can reliably act on scan results.
+extended_spam_headers = true;
+use = ["x-spam-status", "iwb-spam-checked"];
+
+custom {
+  iwb-spam-checked = <<EOD
+return function(task, common_meta)
+  return nil,
+  {["X-IWB-Spam-Checked"] = "yes"},
+  {["X-IWB-Spam-Checked"] = 0},
+  {}
+end
+EOD;
+}

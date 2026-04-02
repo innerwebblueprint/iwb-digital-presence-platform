@@ -61,6 +61,14 @@ if [ -f "$IWB_CONFIGDIR/mail/rspamd/actions.conf.template" ]; then
   ln -sf "$IWB_CONFIGDIR/mail/rspamd/actions.conf" "/etc/rspamd/local.d/actions.conf"
 fi
 
+# Process milter_headers.conf.template
+if [ -f "$IWB_CONFIGDIR/mail/rspamd/milter_headers.conf.template" ]; then
+  echo -e "$IWB_PREFIX Rendering milter_headers.conf.template..."
+  sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+      "$IWB_CONFIGDIR/mail/rspamd/milter_headers.conf.template" > "$IWB_CONFIGDIR/mail/rspamd/milter_headers.conf"
+  ln -sf "$IWB_CONFIGDIR/mail/rspamd/milter_headers.conf" "/etc/rspamd/local.d/milter_headers.conf"
+fi
+
 # Process settings.conf.template
 if [ -f "$IWB_CONFIGDIR/mail/rspamd/settings.conf.template" ]; then
   echo -e "$IWB_PREFIX Rendering settings.conf.template..."
