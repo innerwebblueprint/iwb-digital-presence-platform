@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.55] - 2026-04-02
+
 > **Commit Summary:** feat(mail): strengthen server-side spam filtering, Bayes learning, and Redis-backed persistence safety
 
 ### Added
@@ -29,6 +39,9 @@ Version format:
 ### Fixed
 ### Removed
 ### Security
+
+---
+
 
 ---
 
