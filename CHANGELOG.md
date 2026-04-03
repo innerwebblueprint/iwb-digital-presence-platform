@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.59] - 2026-04-02
+
 > **Commit Summary:** fix(mail): disable DNSBL sources blocked by public resolvers
 
 ### Added
@@ -28,6 +38,9 @@ Version format:
   - `URIBL_MULTI` (`multi.uribl.com`)
 ### Removed
 ### Security
+
+---
+
 
 ---
 
