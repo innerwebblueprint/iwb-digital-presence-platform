@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.58] - 2026-04-02
+
 > **Commit Summary:** fix(mail): align rspamd build config with live validated header stamping
 
 ### Added
@@ -28,6 +38,9 @@ Version format:
 - Rspamd header stamping no longer depends on custom Lua routines or duplicate compatibility config, matching the live configuration that emitted `X-Rspamd-Queue-Id`, `X-Rspamd-Action`, `X-Rspamd-Server`, `X-Spamd-Result`, and `X-Spam-Status` headers on April 3, 2026.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
