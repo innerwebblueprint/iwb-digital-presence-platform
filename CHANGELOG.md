@@ -15,8 +15,11 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(mail): restore rspamd runtime directory ownership after backup restore
+
 ### Added
 ### Changed
+- Rspamd restore now resets `/var/lib/rspamd` ownership to `rspamd:rspamd` after extracting backups so Hyperscan caches and controller stats can be written on startup.
 ### Fixed
 ### Removed
 ### Security

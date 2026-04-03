@@ -120,6 +120,11 @@ case "$DATASET" in
       log "Detected legacy Rspamd archive layout; restoring to /var/lib/rspamd."
       tar -xzf "$ARCHIVE_PATH" -C /var/lib/rspamd
     fi
+
+    # Ensure the runtime directory is writable by the rspamd service user
+    # after restore. The top-level directory may be recreated as root:root
+    # even when archived contents preserve file ownership.
+    chown -R rspamd:rspamd /var/lib/rspamd
     ;;
 
   wpdb)
