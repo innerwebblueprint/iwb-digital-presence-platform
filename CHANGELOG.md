@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.60] - 2026-04-03
+
 > **Commit Summary:** fix(mail): broaden IMAPSieve Bayes training triggers and add learn logging
 
 ### Added
@@ -27,6 +37,9 @@ Version format:
   - `dnswl` (`list.dnswl.org`)
 ### Removed
 ### Security
+
+---
+
 
 ---
 
