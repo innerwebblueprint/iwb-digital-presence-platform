@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.64] - 2026-04-03
+
 > **Commit Summary:** fix(mail): restore rspamd Bayes state during full-mode startup
 
 ### Added
@@ -23,6 +33,9 @@ Version format:
 ### Fixed
 ### Removed
 ### Security
+
+---
+
 
 ---
 
