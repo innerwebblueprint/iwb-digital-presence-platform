@@ -15,8 +15,11 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(mail): restore rspamd Bayes state during full-mode startup
+
 ### Added
 ### Changed
+- Full-mode startup now restores the `rspamd` backup dataset before supervisord starts Redis and Rspamd, so Bayes state from `/var/dump.rdb` can actually be loaded on redeploy.
 ### Fixed
 ### Removed
 ### Security

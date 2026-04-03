@@ -162,6 +162,12 @@ log "Attempting to restore user mailboxes for $IWB_DOMAIN..."
 if ! iwb-restore.sh mail latest; then
   log "$ERR_PREFIX No user mailboxes found... this is normal on a first run"
 fi
+
+# Restore Rspamd/Bayes state before supervisord starts Redis and Rspamd.
+log "Attempting to restore Rspamd state for $IWB_DOMAIN..."
+if ! iwb-restore.sh rspamd latest; then
+  log "$ERR_PREFIX No Rspamd state found... this is normal on a first run"
+fi
  
 # Setup RSPAMD
 log "Preparing rspamd setup for $IWB_DOMAIN..."
