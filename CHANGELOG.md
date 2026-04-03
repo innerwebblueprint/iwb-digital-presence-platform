@@ -23,6 +23,19 @@ Version format:
 
 ---
 
+## [v1.0.0-dev.62] - 2026-04-03
+
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+
+---
+
 ## [v1.0.0-dev.61] - 2026-04-03
 
 > **Commit Summary:** fix(mail): normalize container-generated notification email headers
