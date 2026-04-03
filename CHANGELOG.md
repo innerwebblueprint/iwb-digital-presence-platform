@@ -18,9 +18,22 @@ Version format:
 ### Added
 ### Changed
 ### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.66] - 2026-04-03
+
+### Added
+### Changed
+### Fixed
 - Rspamd restore now recognizes staged backup archives that store entries as `./var/...` as well as `var/...`, so Redis Bayes state in `/var/dump.rdb` is restored to `/` instead of being misclassified as a legacy `/var/lib/rspamd`-only archive.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
