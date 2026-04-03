@@ -1,0 +1,23 @@
+# includes/setup/configs/mail/rspamd/rbl.conf.template
+#
+# Disable DNSBL/DNSWL sources that return refusal or policy sentinel answers
+# behind public resolvers. This keeps the rest of the Rspamd RBL module active
+# without relying on known-bad results.
+
+rbls {
+  spamhaus {
+    enabled = false;
+  }
+
+  senderscore_reputation {
+    enabled = false;
+  }
+
+  dnswl_dwl {
+    enabled = false;
+  }
+
+  "URIBL_MULTI" {
+    enabled = false;
+  }
+}

@@ -78,6 +78,14 @@ if [ -f "$IWB_CONFIGDIR/mail/rspamd/settings.conf.template" ]; then
   ln -sf "$IWB_CONFIGDIR/mail/rspamd/settings.conf" "/etc/rspamd/local.d/settings.conf"
 fi
 
+# Process rbl.conf.template
+if [ -f "$IWB_CONFIGDIR/mail/rspamd/rbl.conf.template" ]; then
+  echo -e "$IWB_PREFIX Rendering rbl.conf.template..."
+  sed -e "s|{{IWB_DOMAIN}}|$IWB_DOMAIN|g" \
+      "$IWB_CONFIGDIR/mail/rspamd/rbl.conf.template" > "$IWB_CONFIGDIR/mail/rspamd/rbl.conf"
+  ln -sf "$IWB_CONFIGDIR/mail/rspamd/rbl.conf" "/etc/rspamd/local.d/rbl.conf"
+fi
+
 # Process redis.conf.template
 if [ -f "$IWB_CONFIGDIR/mail/rspamd/redis.conf.template" ]; then
   echo -e "$IWB_PREFIX Rendering redis.conf.template..."

@@ -15,9 +15,17 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(mail): disable DNSBL sources blocked by public resolvers
+
 ### Added
 ### Changed
 ### Fixed
+- Rspamd now renders the `rbl.conf` override during startup so the container can disable known-bad DNSBL sources cleanly.
+- Disabled the specific Rspamd RBL/DNSWL sources that were returning refusal or policy sentinel answers behind public resolvers:
+  - `spamhaus` (`zen.spamhaus.org`)
+  - `senderscore_reputation` (`score.senderscore.com`)
+  - `dnswl_dwl` (`dwl.dnswl.org`)
+  - `URIBL_MULTI` (`multi.uribl.com`)
 ### Removed
 ### Security
 
