@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.63] - 2026-04-03
+
 > **Commit Summary:** fix(mail): restore branded sender display name with proper UTF-8 header encoding
 
 ### Added
@@ -23,6 +33,9 @@ Version format:
 ### Fixed
 ### Removed
 ### Security
+
+---
+
 
 ---
 
