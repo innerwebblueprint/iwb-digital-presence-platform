@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.56] - 2026-04-02
+
 > **Commit Summary:** fix(mail): align spam headers and Junk filing with live namespace and Rspamd module behavior
 
 ### Added
@@ -24,6 +34,9 @@ Version format:
 - The Rspamd `milter_headers` configuration now explicitly enables the custom and extended header routines so scan-result headers are actually emitted after redeploy.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
