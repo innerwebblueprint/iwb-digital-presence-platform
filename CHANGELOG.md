@@ -23,6 +23,19 @@ Version format:
 
 ---
 
+## [v1.0.0-dev.57] - 2026-04-02
+
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+
+---
+
 ## [v1.0.0-dev.56] - 2026-04-02
 
 > **Commit Summary:** fix(mail): align spam headers and Junk filing with live namespace and Rspamd module behavior
