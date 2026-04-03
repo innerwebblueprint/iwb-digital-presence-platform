@@ -110,10 +110,11 @@ case "$DATASET" in
     mkdir -p /var/lib/rspamd
 
     # Support both the new staged archive layout:
-    #   var/lib/rspamd/...
-    #   var/dump.rdb
+    #   ./var/lib/rspamd/...
+    #   ./var/dump.rdb
+    # (older tar implementations may omit the leading ./)
     # and the legacy layout that archived only the contents of /var/lib/rspamd.
-    if tar -tzf "$ARCHIVE_PATH" | grep -q '^var/'; then
+    if tar -tzf "$ARCHIVE_PATH" | grep -Eq '^(\./)?var/'; then
       log "Detected staged Rspamd archive layout; restoring to filesystem root."
       tar -xzf "$ARCHIVE_PATH" -C /
     else
