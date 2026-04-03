@@ -87,7 +87,7 @@ RUN apk add --no-cache \
 RUN apk add --no-cache \
     postfix postfix-mysql \
     dovecot dovecot-lmtpd dovecot-pop3d dovecot-mysql dovecot-pigeonhole-plugin \
-    rspamd redis mailx && \
+    rspamd rspamd-client redis mailx && \
     echo "=== Alpine's Sieve plugins ===" && \
     ls -lh /usr/lib/dovecot/*sieve* 2>/dev/null || echo "No sieve files found"
 

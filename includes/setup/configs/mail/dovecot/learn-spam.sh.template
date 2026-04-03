@@ -1,2 +1,19 @@
 #!/bin/sh
-exec /usr/bin/rspamc -h 127.0.0.1:11334 -P '{{IWB_RSPAMD_CONTROLLER_PASSWORD}}' learn_spam
+
+RSPAMC_BIN="$(command -v rspamc 2>/dev/null || true)"
+
+if [ -z "$RSPAMC_BIN" ]; then
+  for candidate in /usr/bin/rspamc /usr/local/bin/rspamc /usr/sbin/rspamc /bin/rspamc; do
+    if [ -x "$candidate" ]; then
+      RSPAMC_BIN="$candidate"
+      break
+    fi
+  done
+fi
+
+if [ -z "$RSPAMC_BIN" ]; then
+  echo "rspamc not found" >&2
+  exit 127
+fi
+
+exec "$RSPAMC_BIN" -h 127.0.0.1:11334 -P '{{IWB_RSPAMD_CONTROLLER_PASSWORD}}' learn_spam

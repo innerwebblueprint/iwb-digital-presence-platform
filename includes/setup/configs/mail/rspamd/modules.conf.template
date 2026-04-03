@@ -3,15 +3,6 @@
 # This is a rendered file for domain {{IWB_DOMAIN}}
 # Please do not edit here, this template is built into the docker container
 
-# Enables the controller worker (for DKIM, spam learning, etc.)
-controllers_enabled = true;
-
-# Enable key modules
-dkim_enabled = true;
-spf_enabled = true;
-dmarc_enabled = true;
-mime_types_enabled = true;
-phishing_enabled = true;
-rbl_enabled = true;
-mx_check_enabled = true;
-arc_enabled = true;
+# Keep the packaged module-loading chain intact so modules.d defaults and
+# local.d/override.d customizations merge as Rspamd expects.
+.include(glob=true) "${CONFDIR}/modules.d/*.conf"

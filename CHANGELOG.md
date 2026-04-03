@@ -15,9 +15,17 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(mail): align rspamd build config with live validated header stamping
+
 ### Added
 ### Changed
+- The mail image now installs Alpine's `rspamd-client` package alongside `rspamd` so IMAPSieve learning scripts have the `rspamc` client available in rebuilt containers.
+- The Rspamd `modules.conf` template now preserves the packaged `modules.d/*.conf` include chain instead of replacing it with a minimal hand-written module list.
+- The Rspamd `milter_headers` template now matches the live validated Alpine package behavior by using built-in header names with `skip_local = false` and `skip_authenticated = false`.
+- The build no longer renders a recipient-specific strict Rspamd settings rule, so all mailboxes now follow the same global spam policy by default.
 ### Fixed
+- Dovecot spam and ham learning wrappers now locate `rspamc` dynamically at runtime instead of assuming `/usr/bin/rspamc`, avoiding Bayes training failures on images where the binary path differs.
+- Rspamd header stamping no longer depends on custom Lua routines or duplicate compatibility config, matching the live configuration that emitted `X-Rspamd-Queue-Id`, `X-Rspamd-Action`, `X-Rspamd-Server`, `X-Spamd-Result`, and `X-Spam-Status` headers on April 3, 2026.
 ### Removed
 ### Security
 

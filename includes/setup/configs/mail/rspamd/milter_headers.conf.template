@@ -3,24 +3,14 @@
 # This is a rendered file for domain {{IWB_DOMAIN}}
 # Please do not edit here, this template is built into the docker container
 
-# Stamp scanned inbound mail with consistent headers so downstream filters and
-# mailbox rules can reliably act on scan results.
+# Stamp scanned mail with the live-validated built-in headers configuration for
+# the Alpine rspamd package.
 extended_spam_headers = true;
+skip_local = false;
+skip_authenticated = false;
 use = [
   "x-spam-status",
   "x-spamd-result",
   "x-rspamd-server",
-  "x-rspamd-queue-id",
-  "iwb-spam-checked"
+  "x-rspamd-queue-id"
 ];
-
-custom {
-  iwb-spam-checked = <<EOD
-return function(task, common_meta)
-  return nil,
-  {["X-IWB-Spam-Checked"] = "yes"},
-  {["X-IWB-Spam-Checked"] = 0},
-  {}
-end
-EOD;
-}
