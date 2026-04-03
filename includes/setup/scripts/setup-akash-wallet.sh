@@ -67,7 +67,7 @@ send_wallet_failure_notification() {
     done
 
     local mail_from="${IWB_MAIL_USER}@${IWB_DOMAIN}"
-    local mail_from_name="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+    local mail_from_name="=?UTF-8?B?SVdCIPCflLTwn5+i8J+UtSB8IFlvdXIgRGlnaXRhbCBQcmVzZW5jZSBQbGF0Zm9ybQ==?="
     local mail_from_header="${mail_from_name} <${mail_from}>"
     local mail_to="$mail_from"
     local subject="Akash Wallet Setup Warning for ${IWB_DOMAIN}"
@@ -307,7 +307,7 @@ send_wallet_notification() {
     done
     
     local mail_from="${IWB_MAIL_USER}@${IWB_DOMAIN}"
-    local mail_from_name="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+    local mail_from_name="=?UTF-8?B?SVdCIPCflLTwn5+i8J+UtSB8IFlvdXIgRGlnaXRhbCBQcmVzZW5jZSBQbGF0Zm9ybQ==?="
     local mail_from_header="${mail_from_name} <${mail_from}>"
     local mail_to="$mail_from"
     local subject="New Akash Deployment Wallet Created for ${IWB_DOMAIN}"
@@ -367,7 +367,7 @@ send_wallet_notification_existing() {
     done
     
     local mail_from="${IWB_MAIL_USER}@${IWB_DOMAIN}"
-    local mail_from_name="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+    local mail_from_name="=?UTF-8?B?SVdCIPCflLTwn5+i8J+UtSB8IFlvdXIgRGlnaXRhbCBQcmVzZW5jZSBQbGF0Zm9ybQ==?="
     local mail_from_header="${mail_from_name} <${mail_from}>"
     local mail_to="$mail_from"
     local subject="Akash Deployment Wallet Status for ${IWB_DOMAIN}"

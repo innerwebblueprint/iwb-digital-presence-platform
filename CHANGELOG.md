@@ -15,8 +15,11 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(mail): restore branded sender display name with proper UTF-8 header encoding
+
 ### Added
 ### Changed
+- Container-generated notification emails now use the same colored-dot branded `From:` display name across the board, encoded as an RFC 2047 UTF-8 header for safer transport.
 ### Fixed
 ### Removed
 ### Security

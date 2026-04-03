@@ -105,7 +105,7 @@ fi
 
 # Compose email (same as before, just inserting DKIM_PUBKEY properly)
 MAIL_FROM="${IWB_MAIL_USER}@$DOMAIN"
-MAIL_FROM_NAME="IWB Digital Presence Platform"
+MAIL_FROM_NAME="=?UTF-8?B?SVdCIPCflLTwn5+i8J+UtSB8IFlvdXIgRGlnaXRhbCBQcmVzZW5jZSBQbGF0Zm9ybQ==?="
 MAIL_FROM_HEADER="${MAIL_FROM_NAME} <${MAIL_FROM}>"
 MAIL_TO="$MAIL_FROM"
 SUBJECT="DKIM, SPF, and DMARC DNS Setup Instructions for $DOMAIN"

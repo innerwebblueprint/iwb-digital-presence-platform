@@ -26,7 +26,7 @@ log "Rspamd passwords loaded from state files"
 
 # Compose email with new user and password:
 MAIL_FROM="${IWB_MAIL_USER}@$IWB_DOMAIN"
-MAIL_FROM_NAME="IWB Digital Presence Platform"
+MAIL_FROM_NAME="=?UTF-8?B?SVdCIPCflLTwn5+i8J+UtSB8IFlvdXIgRGlnaXRhbCBQcmVzZW5jZSBQbGF0Zm9ybQ==?="
 MAIL_FROM_HEADER="${MAIL_FROM_NAME} <${MAIL_FROM}>"
 MAIL_TO="$MAIL_FROM"
 SUBJECT="Your IWB Digital Presence Platform credentials for ${IWB_DOMAIN}"

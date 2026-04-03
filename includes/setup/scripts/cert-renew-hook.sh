@@ -98,7 +98,7 @@ fi
 # Optional notification email (only if container env provides these vars)
 if [ -n "${IWB_MAIL_USER:-}" ] && [ -n "${IWB_DOMAIN:-}" ] && command -v sendmail >/dev/null 2>&1; then
   MAIL_FROM="${IWB_MAIL_USER}@${IWB_DOMAIN}"
-  MAIL_FROM_NAME="IWB Digital Presence Platform"
+  MAIL_FROM_NAME="=?UTF-8?B?SVdCIPCflLTwn5+i8J+UtSB8IFlvdXIgRGlnaXRhbCBQcmVzZW5jZSBQbGF0Zm9ybQ==?="
   MAIL_FROM_HEADER="${MAIL_FROM_NAME} <${MAIL_FROM}>"
   RENEWAL_DATE="$(date +"%Y-%m-%d %H:%M:%S %Z")"
   CERT_EXPIRY=""
