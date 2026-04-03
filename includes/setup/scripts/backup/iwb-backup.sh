@@ -162,7 +162,7 @@ case "$DATASET" in
         log "Requesting fresh Redis snapshot before backup..."
         if redis-cli BGSAVE >/dev/null 2>&1; then
           for _ in $(seq 1 30); do
-            if [ "$(redis-cli INFO persistence 2>/dev/null | awk -F: '/^rdb_bgsave_in_progress/ {gsub(/\r/, \"\", $2); print $2}')" = "0" ]; then
+            if [ "$(redis-cli INFO persistence 2>/dev/null | tr -d '\r' | awk -F: '/^rdb_bgsave_in_progress/ {print $2}')" = "0" ]; then
               break
             fi
             sleep 1
