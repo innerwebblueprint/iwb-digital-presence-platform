@@ -6,7 +6,13 @@
 # Stamp scanned inbound mail with consistent headers so downstream filters and
 # mailbox rules can reliably act on scan results.
 extended_spam_headers = true;
-use = ["x-spam-status", "iwb-spam-checked"];
+use = [
+  "x-spam-status",
+  "x-spamd-result",
+  "x-rspamd-server",
+  "x-rspamd-queue-id",
+  "iwb-spam-checked"
+];
 
 custom {
   iwb-spam-checked = <<EOD

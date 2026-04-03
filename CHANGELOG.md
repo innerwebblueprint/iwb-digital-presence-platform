@@ -15,9 +15,13 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(mail): align spam headers and Junk filing with live namespace and Rspamd module behavior
+
 ### Added
 ### Changed
 ### Fixed
+- The default server-side spam filing rule now targets `INBOX/Junk` when that namespace exists, fixing full-mode deliveries where Dovecot rejected `fileinto "Junk"` because the mailbox name was prefixed.
+- The Rspamd `milter_headers` configuration now explicitly enables the custom and extended header routines so scan-result headers are actually emitted after redeploy.
 ### Removed
 ### Security
 
