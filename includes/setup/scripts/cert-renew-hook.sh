@@ -98,7 +98,7 @@ fi
 # Optional notification email (only if container env provides these vars)
 if [ -n "${IWB_MAIL_USER:-}" ] && [ -n "${IWB_DOMAIN:-}" ] && command -v sendmail >/dev/null 2>&1; then
   MAIL_FROM="${IWB_MAIL_USER}@${IWB_DOMAIN}"
-  MAIL_FROM_NAME="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+  MAIL_FROM_NAME="IWB Digital Presence Platform"
   MAIL_FROM_HEADER="${MAIL_FROM_NAME} <${MAIL_FROM}>"
   RENEWAL_DATE="$(date +"%Y-%m-%d %H:%M:%S %Z")"
   CERT_EXPIRY=""
@@ -106,11 +106,14 @@ if [ -n "${IWB_MAIL_USER:-}" ] && [ -n "${IWB_DOMAIN:-}" ] && command -v sendmai
     CERT_EXPIRY="$(openssl x509 -enddate -noout -in "$CERT_FULLCHAIN" 2>/dev/null | cut -d= -f2)"
   fi
 
-  cat <<EOF | sendmail -t
+  cat <<EOF | sendmail -t -f "${MAIL_FROM}"
 To: ${IWB_MAIL_USER}@${IWB_DOMAIN}
 From: ${MAIL_FROM_HEADER}
-Reply-To: ${MAIL_FROM}
 Subject: SSL Certificate Renewed - ${IWB_DOMAIN}
+Date: $(LC_ALL=C date -R)
+Message-Id: <cert-renew.$(date +%s).$$@mail.${IWB_DOMAIN}>
+MIME-Version: 1.0
+Auto-Submitted: auto-generated
 
 SSL Certificate Renewal Notification
 =====================================

@@ -105,10 +105,10 @@ fi
 
 # Compose email (same as before, just inserting DKIM_PUBKEY properly)
 MAIL_FROM="${IWB_MAIL_USER}@$DOMAIN"
-MAIL_FROM_NAME="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+MAIL_FROM_NAME="IWB Digital Presence Platform"
 MAIL_FROM_HEADER="${MAIL_FROM_NAME} <${MAIL_FROM}>"
 MAIL_TO="$MAIL_FROM"
-SUBJECT="✅ DKIM + SPF + DMARC DNS Setup Instructions for $DOMAIN"
+SUBJECT="DKIM, SPF, and DMARC DNS Setup Instructions for $DOMAIN"
 
 BODY=$(cat <<EOF
 Hello!
@@ -153,12 +153,15 @@ EOF
 if {
   echo "To: $MAIL_TO"
   echo "From: $MAIL_FROM_HEADER"
-  echo "Reply-To: $MAIL_FROM"
   echo "Subject: $SUBJECT"
+  echo "Date: $(LC_ALL=C date -R)"
+  echo "Message-Id: <dkim.$(date +%s).$$@mail.${DOMAIN}>"
+  echo "MIME-Version: 1.0"
+  echo "Auto-Submitted: auto-generated"
   echo "Content-Type: text/plain; charset=UTF-8"
   echo ""
   echo "$BODY"
-} | /usr/sbin/sendmail -t; then
+} | /usr/sbin/sendmail -t -f "$MAIL_FROM"; then
   log "email sent to $IWB_MAIL_USER@$DOMAIN please check for required DNS records"
 else
   log "$ERR_PREFIX Failed to send DKIM email notification to $MAIL_TO"

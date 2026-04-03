@@ -122,7 +122,7 @@ fi
 
 # Compose email
 MAIL_FROM="${IWB_MAIL_USER}@$IWB_DOMAIN"
-MAIL_FROM_NAME="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+MAIL_FROM_NAME="IWB Digital Presence Platform"
 MAIL_FROM_HEADER="${MAIL_FROM_NAME} <${MAIL_FROM}>"
 MAIL_TO="$MAIL_FROM"
 SUBJECT="Container Started - ${IWB_DOMAIN}"
@@ -202,12 +202,15 @@ done
 if {
   echo "To: $MAIL_TO"
   echo "From: $MAIL_FROM_HEADER"
-  echo "Reply-To: $MAIL_FROM"
   echo "Subject: $SUBJECT"
+  echo "Date: $(LC_ALL=C date -R)"
+  echo "Message-Id: <startup.$(date +%s).$$@mail.${IWB_DOMAIN}>"
+  echo "MIME-Version: 1.0"
+  echo "Auto-Submitted: auto-generated"
   echo "Content-Type: text/plain; charset=UTF-8"
   echo ""
   echo "$BODY"
-} | /usr/sbin/sendmail -t; then
+} | /usr/sbin/sendmail -t -f "$MAIL_FROM"; then
   log "Startup notification email queued successfully to $MAIL_TO"
 else
   log "$ERR_PREFIX Failed to queue startup notification email"

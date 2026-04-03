@@ -93,12 +93,15 @@ EOF
     if {
         echo "To: $mail_to"
         echo "From: $mail_from_header"
-        echo "Reply-To: $mail_from"
         echo "Subject: $subject"
+        echo "Date: $(LC_ALL=C date -R)"
+        echo "Message-Id: <akash.$(date +%s).$$@mail.${IWB_DOMAIN}>"
+        echo "MIME-Version: 1.0"
+        echo "Auto-Submitted: auto-generated"
         echo "Content-Type: text/plain; charset=UTF-8"
         echo ""
         echo "$body"
-    } | /usr/sbin/sendmail -t; then
+    } | /usr/sbin/sendmail -t -f "$mail_from"; then
         log "Sent Akash wallet failure notification email"
     else
         log "WARN: Failed to send Akash wallet failure notification email"
@@ -335,12 +338,15 @@ EOF
     if {
         echo "To: $mail_to"
         echo "From: $mail_from_header"
-        echo "Reply-To: $mail_from"
         echo "Subject: $subject"
+        echo "Date: $(LC_ALL=C date -R)"
+        echo "Message-Id: <akash.$(date +%s).$$@mail.${IWB_DOMAIN}>"
+        echo "MIME-Version: 1.0"
+        echo "Auto-Submitted: auto-generated"
         echo "Content-Type: text/plain; charset=UTF-8"
         echo ""
         echo "$body"
-    } | /usr/sbin/sendmail -t; then
+    } | /usr/sbin/sendmail -t -f "$mail_from"; then
         log "Successfully sent wallet notification email"
     else
         log "${ERR_PREFIX} Failed to send wallet notification email"
@@ -392,12 +398,15 @@ EOF
     if {
         echo "To: $mail_to"
         echo "From: $mail_from_header"
-        echo "Reply-To: $mail_from"
         echo "Subject: $subject"
+        echo "Date: $(LC_ALL=C date -R)"
+        echo "Message-Id: <akash.$(date +%s).$$@mail.${IWB_DOMAIN}>"
+        echo "MIME-Version: 1.0"
+        echo "Auto-Submitted: auto-generated"
         echo "Content-Type: text/plain; charset=UTF-8"
         echo ""
         echo "$body"
-    } | /usr/sbin/sendmail -t; then
+    } | /usr/sbin/sendmail -t -f "$mail_from"; then
         log "Successfully sent existing wallet notification email"
     else
         log "${ERR_PREFIX} Failed to send existing wallet notification email"

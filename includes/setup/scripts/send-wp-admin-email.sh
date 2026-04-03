@@ -26,7 +26,7 @@ log "Rspamd passwords loaded from state files"
 
 # Compose email with new user and password:
 MAIL_FROM="${IWB_MAIL_USER}@$IWB_DOMAIN"
-MAIL_FROM_NAME="IWB 🔴🟢🔵 | Your Digital Presence Platform"
+MAIL_FROM_NAME="IWB Digital Presence Platform"
 MAIL_FROM_HEADER="${MAIL_FROM_NAME} <${MAIL_FROM}>"
 MAIL_TO="$MAIL_FROM"
 SUBJECT="Your IWB Digital Presence Platform credentials for ${IWB_DOMAIN}"
@@ -102,12 +102,15 @@ done
 if {
   echo "To: $MAIL_TO"
   echo "From: $MAIL_FROM_HEADER"
-  echo "Reply-To: $MAIL_FROM"
   echo "Subject: $SUBJECT"
+  echo "Date: $(LC_ALL=C date -R)"
+  echo "Message-Id: <credentials.$(date +%s).$$@mail.${IWB_DOMAIN}>"
+  echo "MIME-Version: 1.0"
+  echo "Auto-Submitted: auto-generated"
   echo "Content-Type: text/plain; charset=UTF-8"
   echo ""
   echo "$BODY"
-} | /usr/sbin/sendmail -t; then
+} | /usr/sbin/sendmail -t -f "$MAIL_FROM"; then
   log "Credentials email sent to $IWB_MAIL_USER@$IWB_DOMAIN - includes WordPress admin & Rspamd web UI passwords"
 else
   log "$ERR_PREFIX Failed to send platform credentials email notification to $MAIL_TO"

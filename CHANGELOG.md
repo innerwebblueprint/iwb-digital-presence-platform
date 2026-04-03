@@ -15,8 +15,11 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(mail): normalize container-generated notification email headers
+
 ### Added
 ### Changed
+- Container-generated notification emails now use ASCII display names, explicit `MIME-Version`, `Date`, `Message-Id`, and `Auto-Submitted` headers, and send with a matching envelope sender.
 ### Fixed
 ### Removed
 ### Security
