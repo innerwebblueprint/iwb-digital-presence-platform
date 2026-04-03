@@ -16,4 +16,15 @@ if [ -z "$RSPAMC_BIN" ]; then
   exit 127
 fi
 
-exec "$RSPAMC_BIN" -h 127.0.0.1:11334 -P '{{IWB_RSPAMD_CONTROLLER_PASSWORD}}' learn_spam
+if command -v logger >/dev/null 2>&1; then
+  logger -t iwb-imapsieve "starting rspamc learn_spam"
+fi
+
+"$RSPAMC_BIN" -h 127.0.0.1:11334 -P '{{IWB_RSPAMD_CONTROLLER_PASSWORD}}' learn_spam
+status=$?
+
+if command -v logger >/dev/null 2>&1; then
+  logger -t iwb-imapsieve "finished rspamc learn_spam with exit code $status"
+fi
+
+exit "$status"

@@ -15,9 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix(mail): broaden IMAPSieve Bayes training triggers and add learn logging
+
 ### Added
 ### Changed
+- Dovecot IMAPSieve training now listens for both `COPY` and `APPEND` events when mail is moved into or out of `INBOX/Junk`, making Junk actions from clients like Thunderbird more likely to trigger Bayes learning reliably.
 ### Fixed
+- Dovecot Bayes training wrappers now write start and finish log markers through `logger` around `rspamc learn_spam` and `rspamc learn_ham`, so future Junk actions can be verified from live logs.
+- Disabled the additional Rspamd RBL/DNSWL sources still returning invalid policy responses behind public resolvers:
+  - `DBL` (`dbl.spamhaus.org`)
+  - `dnswl` (`list.dnswl.org`)
 ### Removed
 ### Security
 
