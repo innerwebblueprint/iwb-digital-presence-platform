@@ -104,8 +104,43 @@ case "$INTERVAL" in
 esac
 
 # --- Define Paths ---
-TMP_BACKUP_DIR="/tmp/iwb-backup-${DATASET}-${INTERVAL}"
-mkdir -p "$TMP_BACKUP_DIR"
+# Use a unique staging directory so overlapping backup runs cannot overwrite or
+# remove one another's archives. The EXIT trap also removes partial archives
+# after failures or interruptions, preventing local backup accumulation.
+TMP_BACKUP_DIR="$(mktemp -d "/tmp/iwb-backup-${DATASET}-${INTERVAL}.XXXXXX")" || {
+  log "$ERR_PREFIX Failed to create temporary backup directory."
+  (return 1 2>/dev/null) || exit 1
+}
+
+cleanup_backup_staging() {
+  if [ -z "${TMP_BACKUP_DIR:-}" ] || [ ! -d "$TMP_BACKUP_DIR" ]; then
+    return 0
+  fi
+
+  if rm -rf -- "$TMP_BACKUP_DIR"; then
+    TMP_BACKUP_DIR=""
+    return 0
+  fi
+
+  log "$ERR_PREFIX Failed to remove temporary backup directory: $TMP_BACKUP_DIR"
+  return 1
+}
+
+cleanup_backup_staging_on_exit() {
+  local exit_status=$?
+
+  trap - EXIT
+  if ! cleanup_backup_staging && [ "$exit_status" -eq 0 ]; then
+    exit_status=1
+  fi
+
+  exit "$exit_status"
+}
+
+trap cleanup_backup_staging_on_exit EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # These will be set inside the dataset switch:
 BACKUP_SOURCE_DIR=""
@@ -120,14 +155,17 @@ case "$DATASET" in
 
   postfix)
     MODULE="BACKUP POSTIFX"
-    BACKUP_SOURCE_DIR="/var/data/backup/postfix"
+    BACKUP_SOURCE_DIR="${TMP_BACKUP_DIR}/postfix"
     mkdir -p "$BACKUP_SOURCE_DIR"
     SQL_DUMP_FILE="${BACKUP_SOURCE_DIR}/${IWB_DOMAIN}_postfixadmin.sql"
 
     log "Exporting PostfixAdmin database..."
-    mariadb-dump --databases "${IWB_POSTFIXADMIN_SQL_DBNAME}" \
+    if ! mariadb-dump --databases "${IWB_POSTFIXADMIN_SQL_DBNAME}" \
       -u root --socket=/run/mysqld/mysqld.sock \
-      -p"${IWB_MYSQL_ROOT_PASSWORD}" > "$SQL_DUMP_FILE"
+      -p"${IWB_MYSQL_ROOT_PASSWORD}" > "$SQL_DUMP_FILE"; then
+      log "$ERR_PREFIX PostfixAdmin database export failed."
+      (return 1 2>/dev/null) || exit 1
+    fi
 
     ## This was recomended as a better command..???
     # mariadb-dump --databases "${IWB_POSTFIXADMIN_SQL_DBNAME}" \
@@ -182,7 +220,7 @@ case "$DATASET" in
 
   wpdb)
     MODULE="BACKUP WPDB"
-    BACKUP_SOURCE_DIR="/var/data/backup/wordpress"
+    BACKUP_SOURCE_DIR="${TMP_BACKUP_DIR}/wordpress"
     mkdir -p "$BACKUP_SOURCE_DIR"
     SQL_DUMP_FILE="${BACKUP_SOURCE_DIR}/${IWB_DOMAIN}_wordpress.sql"
 
@@ -192,7 +230,9 @@ case "$DATASET" in
     }
 
     log "Exporting WordPress database using WP-CLI..."
+    WPDB_EXPORT_SUCCEEDED=false
     if wp db export "$SQL_DUMP_FILE" --path="/var/www/html/wordpress" --allow-root; then
+      WPDB_EXPORT_SUCCEEDED=true
       log "Database export successful: $SQL_DUMP_FILE"
     else
       log "$ERR_PREFIX WordPress DB export failed."
@@ -202,6 +242,10 @@ case "$DATASET" in
     wp maintenance-mode deactivate --path="/var/www/html/wordpress" --allow-root || {
       log "$ERR_PREFIX Failed to disable maintenance mode — you may need to manually clear .maintenance"
     }
+
+    if [ "$WPDB_EXPORT_SUCCEEDED" != true ]; then
+      (return 1 2>/dev/null) || exit 1
+    fi
     ;;
 
   wphtml)
@@ -254,7 +298,7 @@ case "$DATASET" in
       # First check if n8n has active executions
       if ! check_n8n_active_executions; then
         log "$ERR_PREFIX Active workflows still running after timeout. Backup cancelled to avoid interruption."
-        return 1
+        (return 1 2>/dev/null) || exit 1
       fi
       
       log "${MODULE} Stopping n8n service for consistent backup..."
@@ -290,7 +334,10 @@ ARCHIVE_FILENAME="${IWB_DOMAIN}_${DATASET}_${TIMESTAMP}.tar.gz"
 ARCHIVE_FILE_PATH="${TMP_BACKUP_DIR}/${ARCHIVE_FILENAME}"
 
 log "Creating backup archive..."
-tar -czf "$ARCHIVE_FILE_PATH" -C "$BACKUP_SOURCE_DIR" .
+if ! tar -czf "$ARCHIVE_FILE_PATH" -C "$BACKUP_SOURCE_DIR" .; then
+  log "$ERR_PREFIX Failed to create backup archive: $ARCHIVE_FILE_PATH"
+  (return 1 2>/dev/null) || exit 1
+fi
 
 # --- Cloud Upload (versioned and latest) ---
 
@@ -319,12 +366,15 @@ storage_upload_with_retry() {
     fi
 }
 
-  storage_upload_with_retry "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_VERSIONED"
-  storage_upload_with_retry "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_LATEST"
+storage_upload_with_retry "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_VERSIONED"
+storage_upload_with_retry "$ARCHIVE_FILE_PATH" "$REMOTE_KEY_LATEST"
 
 
 # --- Cleanup ---
-#rm -rf "$TMP_BACKUP_DIR"
+log "Remote uploads complete; removing local backup staging."
+if ! cleanup_backup_staging; then
+  (return 1 2>/dev/null) || exit 1
+fi
 
 log "Backup for $DATASET ($INTERVAL) complete."
 

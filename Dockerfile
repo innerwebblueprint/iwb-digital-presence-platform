@@ -153,7 +153,11 @@ COPY --from=akash-builder --chmod=755 /build/provider-services /usr/local/bin/pr
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
     chmod +x wp-cli.phar && \
     mv wp-cli.phar /usr/local/bin/wp-cli.phar && \
-    printf '#!/bin/sh\nexec /usr/local/bin/wp-cli.phar --allow-root "$@"\n' > /usr/local/bin/wp && \
+    printf '%s\n' '#!/bin/sh' \
+      'if [ -z "${IWB_WP_MYSQL_PASSWORD:-}" ] && [ -z "${IWB_WP_MYSQL_PASSWORD_FILE:-}" ] && [ -r /var/data/state/iwb_wp_mysql_password.txt ] && [ -s /var/data/state/iwb_wp_mysql_password.txt ]; then' \
+      '  export IWB_WP_MYSQL_PASSWORD_FILE=/var/data/state/iwb_wp_mysql_password.txt' \
+      'fi' \
+      'exec /usr/local/bin/wp-cli.phar --allow-root "$@"' > /usr/local/bin/wp && \
     chmod +x /usr/local/bin/wp
 
 # Install fonts for imagemagik
