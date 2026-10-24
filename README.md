@@ -53,6 +53,26 @@ All database and service passwords are securely auto-generated on first startup 
 
 ---
 
+### PHP request concurrency
+
+The image ships a dynamic PHP-FPM pool with a maximum of **8 workers**, starting
+with 2 and keeping 1–3 idle workers. Each worker handles one PHP request at a time;
+when all are occupied, additional requests wait for a free worker.
+
+The shared default lives in `includes/setup/configs/php/www.conf`. Rebuild the
+image and recreate containers from that image to apply changes; restarting an
+existing container does not install the new configuration.
+
+Size this limit across every container on the host, leaving memory and CPU for
+MariaDB, mail, n8n, and the operating system. TSP workers sampled around 180–210 MB
+RSS on iwb002 in September 2026; this is an observation, not a per-worker ceiling,
+and RSS includes shared memory. After rollout, check PHP-FPM's
+`pm.max_children` warnings, request latency, host available memory, CPU load, and
+swap activity during busy periods before increasing the limit further. Repeated
+warnings can also indicate slow requests that need investigation.
+
+---
+
 ### 📸 See it in Action
 To understand the “why” behind the project, its purpose, and how it serves people and ideas (and see it in action), visit:
 🌟 https://www.innerwebblueprint.com/about-iwb/

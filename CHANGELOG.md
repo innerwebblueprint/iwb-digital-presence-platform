@@ -17,6 +17,7 @@ Version format:
 
 ### Added
 ### Changed
+- Increase the shared PHP-FPM dynamic pool limit from 5 to 8 workers to accommodate request bursts, retaining the existing startup and idle pool sizes; document capacity planning and image rollout.
 ### Fixed
 ### Removed
 ### Security
