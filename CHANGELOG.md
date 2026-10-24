@@ -17,12 +17,25 @@ Version format:
 
 ### Added
 ### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.67] - 2026-10-23
+
+### Added
+### Changed
 - Increase the shared PHP-FPM dynamic pool limit from 5 to 8 workers to accommodate request bursts, retaining the existing startup and idle pool sizes; document capacity planning and image rollout.
 ### Fixed
 - Update the Akash builder to Go 1.26 to satisfy provider v0.16.4's Go 1.26.2 minimum.
 ### Removed
 ### Security
 - Require PHP CLI, FPM, and common packages at 8.3.36 or newer for the October 2026 emergency security fixes; verify the PHP runtime during image builds.
+
+---
+
 
 ---
 
