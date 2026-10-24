@@ -15,6 +15,16 @@ Version format:
 
 ## [Unreleased]
 
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+---
+
+## [v1.0.0-dev.69] - 2026-10-24
+
 > **Commit Summary:** fix: discover healthy Akash endpoints for wallet balance lookup
 
 ### Added
@@ -28,6 +38,9 @@ Version format:
 - Query AKT and ACT individually over REST to avoid balance pagination, and bound HTTP requests for balance and optional USD price lookups.
 ### Removed
 ### Security
+
+---
+
 
 ---
 
