@@ -3,7 +3,8 @@
 ARG NODE_MAJOR=22
 
 # Stage 1: Build Akash provider-services binary
-FROM golang:1.25-alpine AS akash-builder
+# Akash provider v0.16.4 requires Go 1.26.2 or newer.
+FROM golang:1.26-alpine AS akash-builder
 ARG AKASH_VERSION=latest
 RUN apk add --no-cache git curl jq wget ca-certificates build-base linux-headers pkgconf eudev-dev
 ENV PATH="/usr/local/go/bin:${PATH}"
@@ -111,9 +112,10 @@ RUN apk add --no-cache mariadb mariadb-client
 # Web stack: Nginx and Certbot
 RUN apk add --no-cache nginx certbot certbot-nginx
 
-# PHP 8.3 core + WordPress modules
+# PHP 8.3 core + WordPress modules.
+# Security floor: October 2026 emergency fixes; allow subsequent patch releases.
 RUN apk add --no-cache \
-    php83 php83-cli php83-fpm php83-common php83-mysqli php83-mbstring php83-session php83-json \
+    'php83>=8.3.36' php83-cli 'php83-fpm>=8.3.36' 'php83-common>=8.3.36' php83-mysqli php83-mbstring php83-session php83-json \
     php83-openssl php83-curl php83-phar php83-zlib php83-xml php83-dom php83-tokenizer php83-fileinfo \
     php83-imap php83-gd php83-intl php83-pdo php83-pdo_mysql php83-soap \
     php83-ctype php83-simplexml php83-xmlwriter
@@ -130,7 +132,10 @@ COPY --from=node-runtime /usr/local/ /usr/local/
 RUN echo "Installed Node.js version: $(node --version)" && \
     echo "Installed npm version: $(npm --version)"
 
-RUN ln -sf /usr/bin/php83 /usr/bin/php
+RUN ln -sf /usr/bin/php83 /usr/bin/php && \
+    php -r 'if (PHP_MAJOR_VERSION !== 8 || PHP_MINOR_VERSION !== 3 || version_compare(PHP_VERSION, "8.3.36", "<")) { fwrite(STDERR, "PHP 8.3.36 or newer in the 8.3 branch is required\n"); exit(1); }' && \
+    php --version && \
+    php-fpm83 --version
 
 # Install PostfixAdmin 
 WORKDIR /var/www/html/postfixadmin

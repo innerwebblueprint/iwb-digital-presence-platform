@@ -55,6 +55,13 @@ All database and service passwords are securely auto-generated on first startup 
 
 ### PHP request concurrency
 
+The image requires PHP **8.3.36 or newer within the 8.3 branch**, including the
+October 2026 emergency security fixes. Alpine selects the latest available patch
+release during a fresh package installation. For security updates, rebuild with
+`./scripts/build-and-push.sh --no-cache --skip-push`, then distribute the image and
+recreate deployed containers. A restart alone does not update PHP. Verify each
+replacement container with `php --version` and `php-fpm83 --version`.
+
 The image ships a dynamic PHP-FPM pool with a maximum of **8 workers**, starting
 with 2 and keeping 1–3 idle workers. Each worker handles one PHP request at a time;
 when all are occupied, additional requests wait for a free worker.
