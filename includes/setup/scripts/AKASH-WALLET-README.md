@@ -120,6 +120,47 @@ tail -f /var/log/n8n-commands.log
 provider-services query bank balances [address] --node https://rpc.akashnet.net:443 --chain-id akashnet-2
 ```
 
+### Startup balance lookup failures
+
+Startup discovers RPC and REST endpoints from the [official Akash mainnet
+registry](https://github.com/akash-network/net/blob/main/mainnet/meta.json).
+It fetches the registry through raw.githubusercontent.com, falling back to the
+GitHub raw URL if needed, and validates the chain ID and endpoint lists. Only
+HTTPS endpoints are accepted; duplicate URLs are removed.
+
+RPC candidates are checked for `akashnet-2` and `catching_up: false` before querying
+balances. If RPC queries fail, REST candidates are checked for the same chain and
+sync status, then queried for AKT and ACT individually to avoid pagination.
+Each HTTP request has a 3-second connection timeout and at most 10 seconds total;
+CLI queries have at most 15 seconds. Discovery and balance queries share a
+120-second budget, with RPC attempts limited to 60 seconds to leave time for REST.
+Errors and the successful endpoint are written to startup logs.
+
+The registry is a maintained list of candidates, not a guarantee of availability.
+If the registry cannot be reached, explicitly configured endpoints still work.
+There are no built-in node URLs. Optional operator endpoints are tried first:
+
+```bash
+AKASH_NODE=https://your-rpc.example
+AKASH_REST_ENDPOINTS="https://your-rest.example https://another-rest.example"
+```
+
+If every endpoint fails or the time budget expires, the notification reports
+`unavailable`; it does not report a failed lookup as zero. A successful empty bank
+response still means zero. The optional CoinGecko USD price lookup is separate.
+
+After updating the installed script, rerun startup wallet setup inside the container:
+
+```bash
+bash /var/setup/scripts/setup-akash-wallet.sh
+```
+
+Regression checks (mocked network calls, no wallet access):
+
+```bash
+bash tests/akash-wallet-balance.sh
+```
+
 ## Environment Variables
 
 The system uses these existing environment variables:

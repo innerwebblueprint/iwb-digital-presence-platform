@@ -15,9 +15,17 @@ Version format:
 
 ## [Unreleased]
 
+> **Commit Summary:** fix: discover healthy Akash endpoints for wallet balance lookup
+
 ### Added
+- Mocked regression checks for wallet balances, endpoint discovery, registry fallback, invalid responses, lookup timeouts, and operator endpoints during registry outages.
 ### Changed
+- Discover RPC and REST candidates from Akash's official mainnet registry at startup, with a fallback GitHub download URL, HTTPS filtering, deduplication, and optional operator-configured endpoints.
+- Verify endpoint chain ID and sync status before balance queries; try alternative endpoints within a shared 120-second budget, reserving time for REST fallback.
+- Document endpoint discovery, configuration, diagnostics, and regression checks in the Akash wallet guide.
 ### Fixed
+- Report wallet balances as unavailable when all lookups fail instead of incorrectly reporting zero AKT and ACT; preserve query errors and log the successful endpoint.
+- Query AKT and ACT individually over REST to avoid balance pagination, and bound HTTP requests for balance and optional USD price lookups.
 ### Removed
 ### Security
 

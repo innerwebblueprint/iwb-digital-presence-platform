@@ -18,7 +18,9 @@ log "Starting Akash wallet setup..."
 # Akash wallet configuration
 AKASH_WALLET_NAME="${COMPOSE_PROJECT_NAME}akashwallet"
 AKASH_KEYRING_BACKEND="test"
-AKASH_NODE="https://rpc.akashnet.net:443"
+# Optional operator endpoints are tried before endpoints discovered from the registry.
+AKASH_NODE="${AKASH_NODE:-}"
+AKASH_REST_ENDPOINTS="${AKASH_REST_ENDPOINTS:-}"
 AKASH_CHAIN_ID="akashnet-2"
 
 format_decimal_6() {
@@ -229,37 +231,154 @@ EOF
     return 0
 }
 
+# Require a real bank response; error JSON must never become a zero balance.
+valid_bank_balances() {
+    jq -e '(.balances | type == "array") and
+        all(.balances[]; (.denom | type == "string") and
+            (.amount | type == "string") and (.amount | test("^[0-9]+$")))' >/dev/null 2>&1
+}
+
+# All discovery and endpoint requests share a 120-second startup budget.
+akash_http_get() {
+    local remaining=$((akash_lookup_deadline - SECONDS))
+    [ "$remaining" -gt 0 ] || return 124
+    [ "$remaining" -le 10 ] || remaining=10
+    curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+        --connect-timeout 3 --max-time "$remaining" "$@"
+}
+
+discover_akash_endpoints() {
+    local registry_url registry endpoint
+    local -a registry_urls=(
+        'https://raw.githubusercontent.com/akash-network/net/main/mainnet/meta.json'
+        'https://github.com/akash-network/net/raw/refs/heads/main/mainnet/meta.json'
+    )
+    for registry_url in "${registry_urls[@]}"; do
+        if registry=$(akash_http_get "$registry_url") &&
+            jq -e --arg chain "$AKASH_CHAIN_ID" '
+                .chain_id == $chain and (.apis.rpc | type == "array") and
+                (.apis.rest | type == "array")' <<< "$registry" >/dev/null 2>&1; then
+            # Treat the downloaded registry as data; allow only HTTPS URLs without whitespace.
+            while IFS= read -r endpoint; do
+                if [[ " ${akash_rpc_endpoints[*]} " != *" $endpoint "* ]]; then
+                    akash_rpc_endpoints+=("$endpoint")
+                fi
+            done < <(jq -r '.apis.rpc[].address | select(type == "string") |
+                sub("/+$"; "") | select(test("^https://[^/[:space:]]+[^[:space:]]*$"))' <<< "$registry")
+            while IFS= read -r endpoint; do
+                if [[ " ${akash_rest_endpoints[*]} " != *" $endpoint "* ]]; then
+                    akash_rest_endpoints+=("$endpoint")
+                fi
+            done < <(jq -r '.apis.rest[].address | select(type == "string") |
+                sub("/+$"; "") | select(test("^https://[^/[:space:]]+[^[:space:]]*$"))' <<< "$registry")
+            if [ "${#akash_rpc_endpoints[@]}" -gt 0 ] || [ "${#akash_rest_endpoints[@]}" -gt 0 ]; then
+                log "Discovered ${#akash_rpc_endpoints[@]} RPC and ${#akash_rest_endpoints[@]} REST candidates from ${registry_url}" >&2
+                return 0
+            fi
+        fi
+        log "WARN: Could not load valid Akash endpoint registry from ${registry_url}" >&2
+    done
+    log "WARN: Registry discovery failed; only operator-configured endpoints are available" >&2
+    return 1
+}
+
+get_wallet_balances_rpc() {
+    local address="$1" endpoint health response remaining
+    # Reserve half the overall budget for REST if CLI/RPC queries keep failing.
+    local rpc_deadline=$((SECONDS + 60))
+    [ "$rpc_deadline" -le "$akash_lookup_deadline" ] || rpc_deadline=$akash_lookup_deadline
+    local akash_lookup_deadline=$rpc_deadline
+    for endpoint in "${akash_rpc_endpoints[@]}"; do
+        [ "$SECONDS" -lt "$akash_lookup_deadline" ] || break
+        # --chain-id on a query alone does not verify the remote network.
+        if ! health=$(akash_http_get "${endpoint%/}/status") ||
+            ! jq -e --arg chain "$AKASH_CHAIN_ID" '
+                .result.node_info.network == $chain and
+                .result.sync_info.catching_up == false' <<< "$health" >/dev/null 2>&1; then
+            log "WARN: RPC endpoint unhealthy, syncing, or wrong chain: ${endpoint}" >&2
+            continue
+        fi
+        remaining=$((akash_lookup_deadline - SECONDS))
+        [ "$remaining" -gt 0 ] || break
+        [ "$remaining" -le 15 ] || remaining=15
+        if response=$(timeout "$remaining" provider-services query bank balances "$address" \
+            --node "$endpoint" --chain-id "$AKASH_CHAIN_ID" --output json) &&
+            valid_bank_balances <<< "$response"; then
+            log "Wallet balance retrieved via RPC ${endpoint}" >&2
+            echo "$response"
+            return 0
+        fi
+        log "WARN: RPC bank query failed at ${endpoint}; trying next endpoint" >&2
+    done
+    return 1
+}
+
+# Query individual denominations over REST to avoid truncated/paginated balances.
+get_wallet_balances_rest() {
+    local address="$1" endpoint denom response amount status attempt
+    local -a amounts
+    for endpoint in "${akash_rest_endpoints[@]}"; do
+        [ "$SECONDS" -lt "$akash_lookup_deadline" ] || break
+        if ! response=$(akash_http_get "${endpoint%/}/cosmos/base/tendermint/v1beta1/node_info") ||
+            ! jq -e --arg chain "$AKASH_CHAIN_ID" '.default_node_info.network == $chain' \
+                <<< "$response" >/dev/null 2>&1; then
+            log "WARN: REST endpoint unavailable or wrong chain: ${endpoint}" >&2
+            continue
+        fi
+        if ! response=$(akash_http_get "${endpoint%/}/cosmos/base/tendermint/v1beta1/syncing") ||
+            ! jq -e '.syncing == false' <<< "$response" >/dev/null 2>&1; then
+            log "WARN: REST endpoint unavailable or syncing: ${endpoint}" >&2
+            continue
+        fi
+        for attempt in 1; do
+            amounts=()
+            for denom in uakt uact; do
+                status=0
+                response=$(akash_http_get --get \
+                    --data-urlencode "denom=${denom}" \
+                    "${endpoint%/}/cosmos/bank/v1beta1/balances/${address}/by_denom") || status=$?
+                if [ "$status" -ne 0 ]; then
+                    log "WARN: Balance REST query failed at ${endpoint} (${denom}, attempt ${attempt}/1, exit ${status})" >&2
+                    break
+                fi
+                if ! amount=$(jq -er --arg denom "$denom" '
+                    .balance | select(.denom == $denom) | .amount |
+                    select(type == "string") | select(test("^[0-9]+$"))' <<< "$response"); then
+                    log "WARN: Invalid balance REST response at ${endpoint} (${denom}, attempt ${attempt}/1)" >&2
+                    break
+                fi
+                amounts+=("$amount")
+            done
+            if [ "${#amounts[@]}" -eq 2 ]; then
+                log "Wallet balance retrieved via REST ${endpoint}" >&2
+                jq -n --arg akt "${amounts[0]}" --arg act "${amounts[1]}" \
+                    '{balances: [{denom: "uakt", amount: $akt}, {denom: "uact", amount: $act}]}'
+                return 0
+            fi
+        done
+    done
+    return 1
+}
+
 # Function to get wallet balance
 get_wallet_balance() {
     local address="$1"
-    # Log to stderr to avoid capturing in return value
     log "Checking wallet balance for address: ${address}" >&2
-    
-    local balance_json
-    local uakt_balance
-    local uact_balance
-    local query_status=0
 
-    balance_json=$(timeout 30 provider-services query bank balances "${address}" \
-        --node "${AKASH_NODE}" \
-        --chain-id "${AKASH_CHAIN_ID}" \
-        --output json 2>/dev/null) || query_status=$?
-
-    if [ "$query_status" -ne 0 ] || [ -z "$balance_json" ]; then
-        log "WARN: Could not fetch wallet balances (network issue or new wallet), defaulting AKT/ACT to 0" >&2
-        uakt_balance="0"
-        uact_balance="0"
-    else
-        uakt_balance=$(echo "$balance_json" | jq -r '([.balances[]? | select(.denom == "uakt")][0].amount) // "0"' 2>/dev/null || echo "0")
-        uact_balance=$(echo "$balance_json" | jq -r '([.balances[]? | select(.denom == "uact")][0].amount) // "0"' 2>/dev/null || echo "0")
+    local balance_json uakt_balance uact_balance
+    local akash_lookup_deadline=$((SECONDS + 120))
+    local -a akash_rpc_endpoints=() akash_rest_endpoints=()
+    [ -z "$AKASH_NODE" ] || akash_rpc_endpoints+=("${AKASH_NODE%/}")
+    read -r -a akash_rest_endpoints <<< "$AKASH_REST_ENDPOINTS"
+    discover_akash_endpoints || true
+    if ! balance_json=$(get_wallet_balances_rpc "$address") &&
+        ! balance_json=$(get_wallet_balances_rest "$address"); then
+        log "WARN: Wallet balance endpoints exhausted or 120-second budget reached; balance unavailable" >&2
+        echo "AKT: unavailable | ACT: unavailable (balance lookup failed; retry later)"
+        return 0
     fi
-
-    if [ -z "$uakt_balance" ] || [ "$uakt_balance" = "null" ]; then
-        uakt_balance="0"
-    fi
-    if [ -z "$uact_balance" ] || [ "$uact_balance" = "null" ]; then
-        uact_balance="0"
-    fi
+    uakt_balance=$(jq -r '([.balances[] | select(.denom == "uakt")][0].amount) // "0"' <<< "$balance_json")
+    uact_balance=$(jq -r '([.balances[] | select(.denom == "uact")][0].amount) // "0"' <<< "$balance_json")
 
     # Convert micro-denoms to token units
     local akt_balance
@@ -273,7 +392,7 @@ get_wallet_balance() {
     
     # Get AKT price in USD
     local akt_price_usd
-    akt_price_usd=$(timeout 10 curl -s "https://api.coingecko.com/api/v3/simple/price?ids=akash-network&vs_currencies=usd" 2>/dev/null | jq -r '.["akash-network"].usd // "0"' 2>/dev/null || echo "0")
+    akt_price_usd=$(timeout 10 curl --fail --silent --show-error --connect-timeout 5 --max-time 9 "https://api.coingecko.com/api/v3/simple/price?ids=akash-network&vs_currencies=usd" 2>/dev/null | jq -r '.["akash-network"].usd // "0"' 2>/dev/null || echo "0")
     
     if [ "$akt_price_usd" = "0" ] || [ -z "$akt_price_usd" ]; then
         log "WARN: Could not fetch AKT price from API" >&2
